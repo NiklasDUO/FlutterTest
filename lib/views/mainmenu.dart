@@ -214,18 +214,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                 record.comment = commentController.text;
                 await databaseHelper.updateRecord(record);
 
-                // Update the record in the scannedCards list
-                final updatedRecord = Record(
-                  qrData: record.qrData,
-                  comment: record.comment,
-                  timestamp: record.timestamp,
-                  macAddress: record.macAddress,
-                );
-                final index = scannedCards.indexOf(record);
-                setState(() {
-                  scannedCards[index] = updatedRecord;
-                });
-
+                setState(() { });
                 Navigator.pop(context);
               },
               child: Text('Submit'),
