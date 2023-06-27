@@ -60,7 +60,7 @@ class DatabaseHelper {
         comment: maps[index]['comment'],
         timestamp: DateTime.parse(maps[index]['timestamp']),
         macAddress: maps[index]['macAddress'],
-      );
+      )..id = maps[index]['id'];
     });
   }
 

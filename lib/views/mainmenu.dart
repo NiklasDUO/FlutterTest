@@ -37,15 +37,17 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
     setState(() {
       scannedCards.clear();
       for (final record in records) {
-        scannedCards.add(Record(
+        final updatedRecord = Record(
           qrData: record.qrData,
           comment: record.comment,
           timestamp: record.timestamp,
           macAddress: record.macAddress,
-        ));
+        );
+        scannedCards.add(updatedRecord);
       }
     });
   }
+
 
 
   final RegExp macAddressRegex = RegExp(
@@ -240,6 +242,8 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       },
     );
   }
+
+
 
 
   void _deleteRecord(Record record) async {
