@@ -2,12 +2,18 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../classes/record.dart';
 
-
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._();
   static Database? _database;
 
   DatabaseHelper._();
+
+  Future<void> deleteByData(String data) async {
+    final Database db = await instance.database;
+    await db.execute('''
+      DELETE FROM records WHERE qrData = '$data'
+    ''');
+  }
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -27,8 +33,16 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         qrData TEXT,
         comment TEXT,
-        timestamp TEXT
+        timestamp TEXT,
+        macAddress TEXT
       )
+    ''');
+  }
+
+  Future<void> clearDatabase() async {
+    final Database db = await instance.database;
+    await db.execute('''
+      DELETE FROM records
     ''');
   }
 
@@ -45,6 +59,7 @@ class DatabaseHelper {
         qrData: maps[index]['qrData'],
         comment: maps[index]['comment'],
         timestamp: DateTime.parse(maps[index]['timestamp']),
+        macAddress: maps[index]['macAddress'],
       );
     });
   }

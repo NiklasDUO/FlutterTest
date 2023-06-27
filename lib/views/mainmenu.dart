@@ -1,7 +1,11 @@
+import 'dart:io';
+import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import '../utilities/DatabaseHelper.dart';
 import '../classes/record.dart';
+import 'package:intl/intl.dart';
 
 class QRCodeScannerPage extends StatefulWidget {
   const QRCodeScannerPage({Key? key}) : super(key: key);
@@ -13,7 +17,7 @@ class QRCodeScannerPage extends StatefulWidget {
 class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   late QRViewController controller;
-  final DatabaseHelper databaseHelper = DatabaseHelper.instance; // Create an instance of DatabaseHelper
+  final DatabaseHelper databaseHelper = DatabaseHelper.instance;
   List<Record> scannedCards = [];
 
   @override
@@ -23,41 +27,102 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _loadScannedCards();
+  }
+
+  Future<void> _loadScannedCards() async {
+    final List<Record> records = await databaseHelper.getRecords();
+    setState(() {
+      scannedCards.clear();
+      for (final record in records) {
+        scannedCards.add(Record(
+          qrData: record.qrData,
+          comment: record.comment,
+          timestamp: record.timestamp,
+          macAddress: record.macAddress,
+        ));
+      }
+    });
+  }
+
+
+  final RegExp macAddressRegex = RegExp(
+    r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$',
+  );
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: scannedCards.length,
-              itemBuilder: (context, index) {
-                return Card(
-                  child: ListTile(
-                    title: Text(scannedCards[index].qrData),
-                    subtitle: Text(scannedCards[index].comment),
-                  ),
-                );
+      body: RefreshIndicator(
+        onRefresh: _loadScannedCards,
+        child: ListView.builder(
+          itemCount: scannedCards.length,
+          itemBuilder: (context, index) {
+            final record = scannedCards[index];
+            return Dismissible(
+              key: UniqueKey(),
+              direction: DismissDirection.horizontal,
+              background: Container(
+                color: Colors.red,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Icon(
+                      Icons.delete,
+                      color: Colors.white,
+                    ),
+                    SizedBox(width: 16.0),
+                  ],
+                ),
+              ),
+              onDismissed: (direction) {
+                _deleteRecord(record);
               },
-            ),
+              child: GestureDetector(
+                onTap: () {
+                  _showEditDialog(context, record);
+                },
+                child: Card(
+                  child: ListTile(
+                    title: Text(DateFormat.d().add_MMM().add_y().add_H().add_m().format(record.timestamp)),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(record.comment),
+                        Text(record.macAddress ?? 'N/A')
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: () {
+              _showClearConfirmationDialog(context);
+            },
+            child: Icon(Icons.delete_forever),
           ),
           SizedBox(height: 16.0),
-          ElevatedButton(
+          FloatingActionButton(
             onPressed: () {
-              // Dispose the QR code scanner
-              controller?.dispose();
-
-              // Close the bottom sheet
-              Navigator.pop(context);
+              _openQRCodeScanner(context);
             },
-            child: Text('Close'),
+            child: Icon(Icons.qr_code),
+          ),
+          SizedBox(height: 16.0),
+          FloatingActionButton(
+            onPressed: _exportToExcel,
+            child: Icon(Icons.arrow_forward),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _openQRCodeScanner(context);
-        },
-        child: Icon(Icons.qr_code),
       ),
     );
   }
@@ -69,9 +134,22 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
         return Container(
           height: 400,
           padding: EdgeInsets.all(16.0),
-          child: QRView(
-            key: qrKey,
-            onQRViewCreated: _onQRViewCreated,
+          child: Column(
+            children: [
+              Expanded(
+                child: QRView(
+                  key: qrKey,
+                  onQRViewCreated: _onQRViewCreated,
+                ),
+              ),
+              SizedBox(height: 16.0),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text('Close'),
+              ),
+            ],
           ),
         );
       },
@@ -79,32 +157,166 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   }
 
   void _onQRViewCreated(QRViewController controller) {
-    setState(() {
-      this.controller = controller;
-      controller.scannedDataStream.listen((scanData) async {
-        // Handle the QR code scan result
-        String qrCode = scanData.code ?? '';
+    this.controller = controller;
+    controller.scannedDataStream.listen((scanData) async {
+      if (scanData.code == null) {
+        return;
+      }
+      String qrCode = scanData.code ?? '';
 
-        // Add the scanned data to the SQLite database
-        await databaseHelper.insertRecord(
-          Record(
-            qrData: qrCode,
-            comment: 'Comment', // Replace with the desired comment
-            timestamp: DateTime.now(),
-          ),
-        );
+      Record newRecord = Record(
+        qrData: qrCode.replaceAll('\n', ' '),
+        comment: ' ',
+        timestamp: DateTime.now(),
+        macAddress: macAddressRegex.firstMatch(qrCode)?.group(0),
+      );
 
-        // Update the scanned cards list
-        setState(() {
-          scannedCards.add(
-            Record(
-              qrData: qrCode,
-              comment: 'Comment', // Replace with the desired comment
-              timestamp: DateTime.now(),
-            ),
-          );
-        });
+      await databaseHelper.insertRecord(newRecord);
+
+      setState(() {
+        scannedCards.add(newRecord);
       });
+
+      controller.dispose();
+      Navigator.pop(context);
     });
+  }
+
+  void _showEditDialog(BuildContext context, Record record) async {
+    final TextEditingController qrDataController = TextEditingController(text: record.qrData);
+    final TextEditingController commentController = TextEditingController(text: record.comment);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Edit Record'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: qrDataController,
+                decoration: InputDecoration(labelText: 'QR Data'),
+              ),
+              TextField(
+                controller: commentController,
+                decoration: InputDecoration(labelText: 'Comment'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                // Update the record in the database
+                record.qrData = qrDataController.text;
+                record.comment = commentController.text;
+                await databaseHelper.updateRecord(record);
+
+                // Update the record in the scannedCards list
+                final updatedRecord = Record(
+                  qrData: record.qrData,
+                  comment: record.comment,
+                  timestamp: record.timestamp,
+                  macAddress: record.macAddress,
+                );
+                final index = scannedCards.indexOf(record);
+                setState(() {
+                  scannedCards[index] = updatedRecord;
+                });
+
+                Navigator.pop(context);
+              },
+              child: Text('Submit'),
+            ),
+            TextButton(
+              onPressed: () async {
+                _deleteRecord(record);
+                Navigator.pop(context);
+              },
+              child: Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+  void _deleteRecord(Record record) async {
+    // Delete the record from the database
+    await databaseHelper.deleteByData(record.qrData as String);
+
+    setState(() {
+      scannedCards.remove(record);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Record deleted')),
+    );
+
+    _loadScannedCards();
+  }
+
+
+  void _showClearConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Clear Database'),
+          content: Text('Are you sure you want to clear the database? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                await databaseHelper.clearDatabase();
+                _loadScannedCards();
+                Navigator.pop(context);
+              },
+              child: Text('Clear'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _exportToExcel() async {
+    // Create Excel workbook and sheet
+    final excel = Excel.createExcel();
+    final sheet = excel['Sheet1'];
+
+    // Add headers
+    sheet.appendRow(['QR Data', 'Comment', 'Timestamp']);
+
+    // Add data rows
+    for (final record in scannedCards) {
+      sheet.appendRow([record.qrData, record.comment, record.timestamp.toString()]);
+    }
+
+    // Get the Downloads directory
+    final downloadsDirectory = await getDownloadsDirectory();
+    if (downloadsDirectory != null) {
+      // Save the Excel file
+      final filePath = '${downloadsDirectory.path}/scanned_cards.xlsx';
+      print(filePath);
+      final file = File(filePath);
+      await file.create(recursive: true);
+      await file.writeAsBytes(await excel.encode() as List<int>);
+
+      // Show a snackbar with the file path
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Exported to Excel: $filePath')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to access the Downloads directory')),
+      );
+    }
   }
 }
