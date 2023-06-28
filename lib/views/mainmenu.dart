@@ -1,11 +1,11 @@
 import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import '../utilities/DatabaseHelper.dart';
 import '../classes/record.dart';
-import 'package:intl/intl.dart';
 
 class QRCodeScannerPage extends StatefulWidget {
   const QRCodeScannerPage({Key? key}) : super(key: key);
@@ -25,6 +25,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
     controller.dispose();
     super.dispose();
   }
+
   @override
   void initState() {
     super.initState();
@@ -38,8 +39,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
     });
   }
 
-
-
   final RegExp macAddressRegex = RegExp(
     r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$',
   );
@@ -47,47 +46,60 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: _loadScannedCards,
+      body: Center(
         child: ListView.builder(
           itemCount: scannedCards.length,
-          itemBuilder: (context, index) {
-            final record = scannedCards[index];
-            return Dismissible(
-              key: UniqueKey(),
-              direction: DismissDirection.horizontal,
-              background: Container(
-                color: Colors.red,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Icon(
-                      Icons.delete,
-                      color: Colors.white,
+          itemBuilder: (BuildContext context, int index) {
+            return Card(
+              child: ListTile(
+                leading: GestureDetector(
+                  child:
+                    CircleAvatar(
+                      backgroundColor: Theme.of(context).primaryColor,
+                      radius: 24.0,
+                      child: Text(
+                        scannedCards[index].quantity.toString(),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14.0,
+                        ),
+                      ),
                     ),
-                    SizedBox(width: 16.0),
+                  onTap: (){
+                    _openNumberModal(context, scannedCards[index]);
+                  },
+                ),
+                title: Align(
+                  alignment: Alignment.centerRight,
+                  child:
+                    Text(
+                      DateFormat.d().add_M().add_y().add_Hm().format(scannedCards[index].timestamp),
+                      style: TextStyle(fontSize: 12.0)
+                    ),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child:Text(
+                      scannedCards[index].macAddress ?? 'N/A',
+                      style: TextStyle(fontSize: 12.0,fontWeight: FontWeight.bold),
+                    ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child:Text(
+                        scannedCards[index].comment,
+                        style: TextStyle(fontSize: 14.0),
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              onDismissed: (direction) {
-                _deleteRecord(record);
-              },
-              child: GestureDetector(
                 onTap: () {
-                  _showEditDialog(context, record);
+                  _showEditDialog(context, scannedCards[index]);
                 },
-                child: Card(
-                  child: ListTile(
-                    title: Text(DateFormat.d().add_MMM().add_y().add_H().add_m().format(record.timestamp)),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(record.comment),
-                        Text(record.macAddress ?? 'N/A')
-                      ],
-                    ),
-                  ),
-                ),
               ),
             );
           },
@@ -95,6 +107,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       ),
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           FloatingActionButton(
             onPressed: () {
@@ -118,6 +131,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       ),
     );
   }
+
 
   void _openQRCodeScanner(BuildContext context) {
     showModalBottomSheet(
@@ -205,7 +219,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                 record.comment = commentController.text;
                 await databaseHelper.updateRecord(record);
 
-                setState(() { });
+                setState(() {});
                 Navigator.pop(context);
               },
               child: Text('Submit'),
@@ -223,9 +237,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
     );
   }
 
-
-
-
   void _deleteRecord(Record record) async {
     print(record.id);
     await databaseHelper.deleteRecord(record.id);
@@ -239,7 +250,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
 
     _loadScannedCards();
   }
-
 
   void _showClearConfirmationDialog(BuildContext context) {
     showDialog(
@@ -301,5 +311,65 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
         SnackBar(content: Text('Unable to access the Downloads directory')),
       );
     }
+  }
+
+  void _openNumberModal(BuildContext context, Record record) {
+    int selectedQuantity = record.quantity;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return Container(
+              padding: EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Modify Quantity',
+                    style: TextStyle(
+                      fontSize: 18.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 16.0),
+                  TextField(
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      setState(() {
+                        selectedQuantity = int.tryParse(value) ?? 0;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Quantity',
+                    ),
+                  ),
+                  SizedBox(height: 16.0),
+                  ElevatedButton(
+                    onPressed: () async {
+                      // Update the quantity in the record
+                      record.quantity = selectedQuantity;
+                      await databaseHelper.updateRecord(record);
+                      Navigator.of(context).pop(selectedQuantity);
+                      _loadScannedCards();
+                    },
+                    child: Text('Save'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    ).then((value) {
+      if (value != null) {
+        // Update the value in the circle
+        setState(() {
+          record.quantity = value;
+        });
+      }
+    });
   }
 }

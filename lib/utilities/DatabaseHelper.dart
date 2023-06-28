@@ -34,7 +34,8 @@ class DatabaseHelper {
         qrData TEXT,
         comment TEXT,
         timestamp TEXT,
-        macAddress TEXT
+        macAddress TEXT,
+        quantity INTEGER
       )
     ''');
   }
@@ -56,6 +57,7 @@ class DatabaseHelper {
     final List<Map<String, dynamic>> maps = await db.query('records');
     return List.generate(maps.length, (index) {
       return Record(
+        quantity: maps[index]['quantity'],
         id: maps[index]['id'],
         qrData: maps[index]['qrData'],
         comment: maps[index]['comment'],
