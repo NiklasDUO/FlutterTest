@@ -18,7 +18,6 @@ class Record {
       'comment': comment,
       'timestamp': timestamp.toIso8601String(),
       'macAddress': macAddress,
-      'id': id ?? 0,
     };
   }
 
