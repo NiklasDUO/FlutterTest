@@ -226,8 +226,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
 
 
   void _deleteRecord(Record record) async {
-    // Delete the record from the database
-    await databaseHelper.deleteByData(record.qrData as String);
+    await databaseHelper.deleteRecord(record.id as int);
 
     setState(() {
       scannedCards.remove(record);
