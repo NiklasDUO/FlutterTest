@@ -25,7 +25,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
     controller.dispose();
     super.dispose();
   }
-
   @override
   void initState() {
     super.initState();
@@ -35,16 +34,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   Future<void> _loadScannedCards() async {
     final List<Record> records = await databaseHelper.getRecords();
     setState(() {
-      scannedCards.clear();
-      for (final record in records) {
-        final updatedRecord = Record(
-          qrData: record.qrData,
-          comment: record.comment,
-          timestamp: record.timestamp,
-          macAddress: record.macAddress,
-        );
-        scannedCards.add(updatedRecord);
-      }
+      scannedCards = records;
     });
   }
 
