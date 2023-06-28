@@ -56,6 +56,7 @@ class DatabaseHelper {
     final List<Map<String, dynamic>> maps = await db.query('records');
     return List.generate(maps.length, (index) {
       return Record(
+        id: maps[index]['id'],
         qrData: maps[index]['qrData'],
         comment: maps[index]['comment'],
         timestamp: DateTime.parse(maps[index]['timestamp']),
@@ -81,5 +82,11 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  Future<int> getNextId() async {
+    final Database db = await instance.database;
+    final List<Map<String, dynamic>> maps = await db.query('records');
+    return maps.length;
   }
 }

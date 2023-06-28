@@ -157,6 +157,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       String qrCode = scanData.code ?? '';
 
       Record newRecord = Record(
+        id: await databaseHelper.getNextId(),
         qrData: qrCode.replaceAll('\n', ' '),
         comment: ' ',
         timestamp: DateTime.now(),
@@ -226,8 +227,8 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
 
 
   void _deleteRecord(Record record) async {
-    await databaseHelper.deleteRecord(record.id as int);
-
+    print(record.id);
+    await databaseHelper.deleteRecord(record.id);
     setState(() {
       scannedCards.remove(record);
     });

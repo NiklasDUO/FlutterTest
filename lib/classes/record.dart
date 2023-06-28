@@ -1,5 +1,5 @@
 class Record {
-  int? id;
+  late int id;
   String qrData;
   String comment;
   DateTime timestamp;
@@ -9,7 +9,8 @@ class Record {
     required this.qrData,
     required this.comment,
     required this.timestamp,
-    String? macAddress, // Added a named parameter for macAddress
+    required this.id,
+    String? macAddress,
   }) : macAddress = macAddress ?? RegExp(r'([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})').firstMatch(qrData)?.group(0) ?? 'N/A';
 
   Map<String, dynamic> toMap() {
