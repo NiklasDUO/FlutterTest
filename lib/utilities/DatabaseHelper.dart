@@ -91,4 +91,13 @@ class DatabaseHelper {
     final List<Map<String, dynamic>> maps = await db.query('records');
     return maps.length;
   }
+  Future<int> getPreviousQuantity() async {
+    final Database db = await instance.database;
+    // find latest record
+    final List<Map<String, dynamic>> maps = await db.query('records');
+    if (maps.length == 0) {
+      return 0;
+    }
+    return maps[maps.length - 1]['quantity'];
+  }
 }

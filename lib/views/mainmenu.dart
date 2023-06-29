@@ -176,6 +176,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
         comment: ' ',
         timestamp: DateTime.now(),
         macAddress: macAddressRegex.firstMatch(qrCode)?.group(0),
+        quantity: await databaseHelper.getPreviousQuantity() + 1,
       );
 
       await databaseHelper.insertRecord(newRecord);
