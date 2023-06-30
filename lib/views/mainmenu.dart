@@ -172,7 +172,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       String qrCode = scanData.code ?? '';
 
       Record newRecord = Record(
-        id: await databaseHelper.getNextId(),
         qrData: qrCode.replaceAll('\n', ' '),
         comment: ' ',
         timestamp: DateTime.now(),
@@ -240,7 +239,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   }
 
   void _deleteRecord(Record record) async {
-    print(record.id);
     await databaseHelper.deleteRecord(record.id);
     setState(() {
       scannedCards.remove(record);
@@ -280,25 +278,24 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       },
     );
   }
-
   void _exportToExcel() async {
     // Create Excel workbook and sheet
     final excel = Excel.createExcel();
     final sheet = excel['Sheet1'];
 
     // Add headers
-    sheet.appendRow(['QR Data', 'Comment', 'Timestamp']);
+    sheet.appendRow(['QR Data', 'Comment', 'Timestamp','Room Number']);
 
     // Add data rows
     for (final record in scannedCards) {
-      sheet.appendRow([record.qrData, record.comment, record.timestamp.toString()]);
+      sheet.appendRow([record.qrData, record.comment, record.timestamp.toString(),record.quantity]);
     }
 
-    // Get the application's documents directory
-    final appDocumentsDirectory = await getApplicationDocumentsDirectory();
-    if (appDocumentsDirectory != null) {
+    // Get the downloads directory path
+    final downloadsDirectory = await getExternalStorageDirectory();
+    if (downloadsDirectory != null) {
       // Save the Excel file
-      final filePath = '${appDocumentsDirectory.path}/scanned_cards.xlsx';
+      final filePath = '${downloadsDirectory.path}/scanned_cards.xlsx';
       print(filePath);
       final file = File(filePath);
       await file.create(recursive: true);
@@ -331,12 +328,10 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to access the Documents directory')),
+        SnackBar(content: Text('Unable to access the Downloads directory')),
       );
     }
   }
-
-
   void _openNumberModal(BuildContext context, Record record) {
     int selectedQuantity = record.quantity;
 
@@ -374,10 +369,12 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                   ElevatedButton(
                     onPressed: () async {
                       // Update the quantity in the record
-                      record.quantity = selectedQuantity;
+                      setState(() {
+                        record.quantity = selectedQuantity;
+                      });
+
                       await databaseHelper.updateRecord(record);
                       Navigator.of(context).pop(selectedQuantity);
-                      _loadScannedCards();
                     },
                     child: Text('Save'),
                   ),

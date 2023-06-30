@@ -63,7 +63,7 @@ class DatabaseHelper {
         comment: maps[index]['comment'],
         timestamp: DateTime.parse(maps[index]['timestamp']),
         macAddress: maps[index]['macAddress'],
-      )..id = maps[index]['id'];
+      );
     });
   }
 
@@ -77,7 +77,8 @@ class DatabaseHelper {
     );
   }
 
-  Future<int> deleteRecord(int id) async {
+  Future<int> deleteRecord(int? id) async {
+    if (id == null) return 0;
     final Database db = await instance.database;
     return await db.delete(
       'records',
@@ -88,16 +89,14 @@ class DatabaseHelper {
 
   Future<int> getNextId() async {
     final Database db = await instance.database;
-    final List<Map<String, dynamic>> maps = await db.query('records');
-    return maps.length;
+    final List<Map<String, dynamic>> maps = await db.query('records',orderBy: 'id');
+    return maps.last['id'] + 1;
   }
   Future<int> getPreviousQuantity() async {
     final Database db = await instance.database;
-    // find latest record
-    final List<Map<String, dynamic>> maps = await db.query('records');
-    if (maps.length == 0) {
-      return 0;
-    }
-    return maps[maps.length - 1]['quantity'];
+    // get all records
+    final List<Map<String, dynamic>> maps = await db.query('records', orderBy: 'id');
+    // return the quantity of the last record
+    return maps.last['quantity'];
   }
 }
