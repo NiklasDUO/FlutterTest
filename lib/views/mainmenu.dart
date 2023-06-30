@@ -292,14 +292,13 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
     }
 
     // Get the downloads directory path
-    final downloadsDirectory = await getExternalStorageDirectory();
+    final downloadsDirectory = await getDownloadPath();
     if (downloadsDirectory != null) {
       // Save the Excel file
-      final filePath = '${downloadsDirectory.path}/scanned_cards.xlsx';
-      print(filePath);
+      final filePath = '${downloadsDirectory}/scanned_cards.xlsx';
       final file = File(filePath);
       await file.create(recursive: true);
-      await file.writeAsBytes(await excel.encode() as List<int>);
+      await file.writeAsBytes(excel.encode() as List<int>);
 
       // Show a snackbar with the file path
       ScaffoldMessenger.of(context).showSnackBar(
@@ -392,5 +391,21 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
         });
       }
     });
+  }
+  Future<String?> getDownloadPath() async {
+    Directory? directory;
+    try {
+      if (Platform.isIOS) {
+        directory = await getApplicationDocumentsDirectory();
+      } else {
+        directory = Directory('/storage/emulated/0/Download');
+        // Put file in global download folder, if for an unknown reason it didn't exist, we fallback
+        // ignore: avoid_slow_async_io
+        if (!await directory.exists()) directory = await getExternalStorageDirectory();
+      }
+    } catch (err, stack) {
+      print('Error while getting downloads directory: $err\n$stack');
+    }
+    return directory?.path;
   }
 }

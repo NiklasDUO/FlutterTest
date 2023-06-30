@@ -94,9 +94,8 @@ class DatabaseHelper {
   }
   Future<int> getPreviousQuantity() async {
     final Database db = await instance.database;
-    // get all records
+    // find latest record
     final List<Map<String, dynamic>> maps = await db.query('records', orderBy: 'id');
-    // return the quantity of the last record
-    return maps.last['quantity'];
+    return maps.lastOrNull?['quantity'] ?? 0;
   }
 }
