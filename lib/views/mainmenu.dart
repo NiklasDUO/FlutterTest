@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import '../utilities/DatabaseHelper.dart';
 import '../classes/record.dart';
+import 'package:open_file/open_file.dart';
 
 class QRCodeScannerPage extends StatefulWidget {
   const QRCodeScannerPage({Key? key}) : super(key: key);
@@ -293,11 +294,11 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       sheet.appendRow([record.qrData, record.comment, record.timestamp.toString()]);
     }
 
-    // Get the Downloads directory
-    final downloadsDirectory = await getDownloadsDirectory();
-    if (downloadsDirectory != null) {
+    // Get the application's documents directory
+    final appDocumentsDirectory = await getApplicationDocumentsDirectory();
+    if (appDocumentsDirectory != null) {
       // Save the Excel file
-      final filePath = '${downloadsDirectory.path}/scanned_cards.xlsx';
+      final filePath = '${appDocumentsDirectory.path}/scanned_cards.xlsx';
       print(filePath);
       final file = File(filePath);
       await file.create(recursive: true);
@@ -307,12 +308,34 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Exported to Excel: $filePath')),
       );
+
+      // Build the dialog bar with the file path and open button
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('File saved at:'),
+            content: Text(filePath),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  // Open the saved Excel file
+                  OpenFile.open(filePath);
+                  Navigator.of(context).pop(); // Close the dialog
+                },
+                child: Text('Open'),
+              ),
+            ],
+          );
+        },
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to access the Downloads directory')),
+        SnackBar(content: Text('Unable to access the Documents directory')),
       );
     }
   }
+
 
   void _openNumberModal(BuildContext context, Record record) {
     int selectedQuantity = record.quantity;
