@@ -387,26 +387,26 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   void _openNumberModal(BuildContext context, Record record) {
     int selectedQuantity = record.quantity;
 
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
       builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return Container(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Modify Quantity',
-                    style: TextStyle(
-                      fontSize: 18.0,
-                      fontWeight: FontWeight.bold,
-                    ),
+        return Dialog(
+          child: Container(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Modify Quantity',
+                  style: TextStyle(
+                    fontSize: 18.0,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 16.0),
-                  TextField(
+                ),
+                const SizedBox(height: 16.0),
+                SizedBox(
+                  width: 200.0,
+                  child: TextField(
                     keyboardType: TextInputType.number,
                     onChanged: (value) {
                       setState(() {
@@ -416,24 +416,25 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                     decoration: const InputDecoration(
                       labelText: 'Quantity',
                     ),
+                    controller: TextEditingController(text: record.quantity.toString()),
                   ),
-                  const SizedBox(height: 16.0),
-                  ElevatedButton(
-                    onPressed: () async {
-                      // Update the quantity in the record
-                      setState(() {
-                        record.quantity = selectedQuantity;
-                      });
+                ),
+                const SizedBox(height: 16.0),
+                ElevatedButton(
+                  onPressed: () async {
+                    // Update the quantity in the record
+                    setState(() {
+                      record.quantity = selectedQuantity;
+                    });
 
-                      await databaseHelper.updateRecord(record);
-                      Navigator.of(context).pop(selectedQuantity);
-                    },
-                    child: const Text('Save'),
-                  ),
-                ],
-              ),
-            );
-          },
+                    await databaseHelper.updateRecord(record);
+                    Navigator.of(context).pop(selectedQuantity);
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            ),
+          ),
         );
       },
     ).then((value) {
@@ -445,6 +446,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       }
     });
   }
+
   Future<String?> getDownloadPath() async {
     Directory? directory;
     if (Platform.isIOS) {
