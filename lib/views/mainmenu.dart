@@ -50,6 +50,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
 
   @override
   Widget build(BuildContext context) {
+    DateFormat format = DateFormat("dd.MM.yyyy HH:mm");
     return Scaffold(
       body: Center(
         child: ListView.builder(
@@ -79,7 +80,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                   alignment: Alignment.centerRight,
                   child:
                     Text(
-                      DateFormat.d().add_M().add_y().add_Hm().format(scannedCards[index].timestamp),
+                        format.format(scannedCards[index].timestamp),
                       style: const TextStyle(fontSize: 12.0)
                     ),
                 ),
@@ -115,22 +116,25 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           FloatingActionButton(
+            backgroundColor: Theme.of(context).primaryColor,
             onPressed: () {
               _showClearConfirmationDialog(context);
             },
-            child: const Icon(Icons.delete_forever),
+            child: const Icon(Icons.delete_forever, color: Colors.white),
           ),
           const SizedBox(height: 16.0),
           FloatingActionButton(
+            backgroundColor: Theme.of(context).primaryColor,
             onPressed: () {
               _openQRCodeScanner(context);
             },
-            child: const Icon(Icons.qr_code),
+            child: const Icon(Icons.qr_code,color: Colors.white,),
           ),
           const SizedBox(height: 16.0),
           FloatingActionButton(
+            backgroundColor: Theme.of(context).primaryColor,
             onPressed: _exportToExcel,
-            child: const Icon(Icons.save),
+            child: const Icon(Icons.save,color: Colors.white),
           ),
         ],
       ),
@@ -173,7 +177,8 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       if (scanData.code == null) {
         return;
       }
-      String qrCode = scanData.code ?? ''.replaceAll('\n', ' ');
+      String qrCode = scanData.code as String;
+      //qrCode = qrCode.replaceAll("\n", ' ');
       String mac = macAddressRegex.firstMatch(qrCode)?.group(0) ?? 'N/A';
       if (!mac.contains(':') && mac != 'N/A') {
         // add colons to mac address don't add colon in the end
@@ -204,17 +209,19 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Edit Record'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: qrDataController,
-                decoration: const InputDecoration(labelText: 'QR Data'),
+                minLines: 1,
+                maxLines: 6,
               ),
               TextField(
                 controller: commentController,
-                decoration: const InputDecoration(labelText: 'Comment'),
+                decoration: const InputDecoration(
+                  hintText: 'Comment',
+                )
               ),
             ],
           ),
@@ -393,34 +400,30 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
         return Dialog(
           child: Container(
             padding: const EdgeInsets.all(16.0),
-            child: Column(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Modify Quantity',
-                  style: TextStyle(
-                    fontSize: 18.0,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16.0),
+                //const SizedBox(height: 16.0),
                 SizedBox(
                   width: 200.0,
                   child: TextField(
                     keyboardType: TextInputType.number,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
                     onChanged: (value) {
                       setState(() {
                         selectedQuantity = int.tryParse(value) ?? 0;
                       });
                     },
-                    decoration: const InputDecoration(
-                      labelText: 'Quantity',
-                    ),
                     controller: TextEditingController(text: record.quantity.toString()),
                   ),
                 ),
                 const SizedBox(height: 16.0),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                  ),
                   onPressed: () async {
                     // Update the quantity in the record
                     setState(() {
@@ -430,7 +433,13 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                     await databaseHelper.updateRecord(record);
                     Navigator.of(context).pop(selectedQuantity);
                   },
-                  child: const Text('Save'),
+                  child: const Text(
+                      'Save',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),

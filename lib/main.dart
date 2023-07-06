@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'QR2TAB'),
+      home: const MyHomePage(title: 'QR 2 TAB'),
     );
   }
 }
@@ -35,8 +35,13 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
+        centerTitle: true,
+        backgroundColor: Theme.of(context).primaryColor,
+        title: Text(widget.title,style: TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),),
       ),
       body: Center(
         child: QRCodeScannerPage()
