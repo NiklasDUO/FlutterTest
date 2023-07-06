@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
+
 import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +8,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import '../utilities/DatabaseHelper.dart';
 import '../classes/record.dart';
-import 'package:open_file/open_file.dart';
+import 'package:share/share.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class QRCodeScannerPage extends StatefulWidget {
   const QRCodeScannerPage({Key? key}) : super(key: key);
@@ -41,7 +45,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   }
 
   final RegExp macAddressRegex = RegExp(
-    r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$',
+    r'^(?:[0-9A-Fa-f]{2}[:-]?){5}[0-9A-Fa-f]{2}$',
   );
 
   @override
@@ -60,7 +64,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                       radius: 24.0,
                       child: Text(
                         scannedCards[index].quantity.toString(),
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 14.0,
@@ -76,7 +80,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                   child:
                     Text(
                       DateFormat.d().add_M().add_y().add_Hm().format(scannedCards[index].timestamp),
-                      style: TextStyle(fontSize: 12.0)
+                      style: const TextStyle(fontSize: 12.0)
                     ),
                 ),
                 subtitle: Column(
@@ -86,14 +90,14 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                       alignment: Alignment.centerRight,
                       child:Text(
                       scannedCards[index].macAddress ?? 'N/A',
-                      style: TextStyle(fontSize: 12.0,fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 12.0,fontWeight: FontWeight.bold),
                     ),
                     ),
                     Align(
                       alignment: Alignment.centerRight,
                       child:Text(
                         scannedCards[index].comment,
-                        style: TextStyle(fontSize: 14.0),
+                        style: const TextStyle(fontSize: 14.0),
                       ),
                     ),
                   ],
@@ -114,19 +118,19 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
             onPressed: () {
               _showClearConfirmationDialog(context);
             },
-            child: Icon(Icons.delete_forever),
+            child: const Icon(Icons.delete_forever),
           ),
-          SizedBox(height: 16.0),
+          const SizedBox(height: 16.0),
           FloatingActionButton(
             onPressed: () {
               _openQRCodeScanner(context);
             },
-            child: Icon(Icons.qr_code),
+            child: const Icon(Icons.qr_code),
           ),
-          SizedBox(height: 16.0),
+          const SizedBox(height: 16.0),
           FloatingActionButton(
             onPressed: _exportToExcel,
-            child: Icon(Icons.arrow_forward),
+            child: const Icon(Icons.save),
           ),
         ],
       ),
@@ -140,7 +144,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       builder: (BuildContext context) {
         return Container(
           height: 400,
-          padding: EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
               Expanded(
@@ -149,12 +153,12 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                   onQRViewCreated: _onQRViewCreated,
                 ),
               ),
-              SizedBox(height: 16.0),
+              const SizedBox(height: 16.0),
               ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context);
                 },
-                child: Text('Close'),
+                child: const Text('Close'),
               ),
             ],
           ),
@@ -178,12 +182,8 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
         macAddress: macAddressRegex.firstMatch(qrCode)?.group(0),
         quantity: await databaseHelper.getPreviousQuantity() + 1,
       );
-
       await databaseHelper.insertRecord(newRecord);
-
-      setState(() {
-        scannedCards.add(newRecord);
-      });
+      _loadScannedCards();
 
       controller.dispose();
       Navigator.pop(context);
@@ -198,17 +198,17 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Edit Record'),
+          title: const Text('Edit Record'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: qrDataController,
-                decoration: InputDecoration(labelText: 'QR Data'),
+                decoration: const InputDecoration(labelText: 'QR Data'),
               ),
               TextField(
                 controller: commentController,
-                decoration: InputDecoration(labelText: 'Comment'),
+                decoration: const InputDecoration(labelText: 'Comment'),
               ),
             ],
           ),
@@ -223,14 +223,14 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                 setState(() {});
                 Navigator.pop(context);
               },
-              child: Text('Submit'),
+              child: const Text('Submit'),
             ),
             TextButton(
               onPressed: () async {
                 _deleteRecord(record);
                 Navigator.pop(context);
               },
-              child: Text('Delete'),
+              child: const Text('Delete'),
             ),
           ],
         );
@@ -245,7 +245,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Record deleted')),
+      const SnackBar(content: Text('Record deleted')),
     );
 
     _loadScannedCards();
@@ -256,14 +256,14 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Clear Database'),
-          content: Text('Are you sure you want to clear the database? This action cannot be undone.'),
+          title: const Text('Clear Database'),
+          content: const Text('Are you sure you want to clear the database? This action cannot be undone.'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
               },
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () async {
@@ -271,7 +271,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                 _loadScannedCards();
                 Navigator.pop(context);
               },
-              child: Text('Clear'),
+              child: const Text('Clear'),
             ),
           ],
         );
@@ -279,55 +279,102 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
     );
   }
   void _exportToExcel() async {
+    if (await Permission.manageExternalStorage.isDenied) {
+      Permission.manageExternalStorage.request();
+      return;
+    }
     // Create Excel workbook and sheet
     final excel = Excel.createExcel();
     final sheet = excel['Sheet1'];
 
     // Add headers
-    sheet.appendRow(['QR Data', 'Comment', 'Timestamp','Room Number']);
+    sheet.appendRow(['QR Data', 'Comment', 'Timestamp', 'Room Number',"Mac Address"]);
 
     // Add data rows
     for (final record in scannedCards) {
-      sheet.appendRow([record.qrData, record.comment, record.timestamp.toString(),record.quantity]);
+      sheet.appendRow([record.qrData, record.comment, record.timestamp.toString(), record.quantity,record.macAddress]);
     }
 
     // Get the downloads directory path
     final downloadsDirectory = await getDownloadPath();
     if (downloadsDirectory != null) {
       // Save the Excel file
-      final filePath = '${downloadsDirectory}/scanned_cards.xlsx';
+      final filePath = '$downloadsDirectory/scanned_cards ${DateFormat.d().add_M().add_y().format(DateTime.now())}.xlsx';
       final file = File(filePath);
-      await file.create(recursive: true);
-      await file.writeAsBytes(excel.encode() as List<int>);
 
-      // Show a snackbar with the file path
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Exported to Excel: $filePath')),
-      );
+      try {
+        // Delete the file if it existss
+        await file.create(recursive: true);
+        await file.writeAsBytes(excel.encode() as List<int>);
+        // Open the dialog with Share and Save options
 
-      // Build the dialog bar with the file path and open button
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('File saved at:'),
-            content: Text(filePath),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  // Open the saved Excel file
-                  OpenFile.open(filePath);
-                  Navigator.of(context).pop(); // Close the dialog
-                },
-                child: Text('Open'),
-              ),
-            ],
-          );
-        },
-      );
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Export Successful'),
+              content: const Text('Choose an option:'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    // Share the Excel file
+                    _shareFile(filePath);
+                    Navigator.of(context).pop(); // Close the dialog
+                  },
+                  child: const Text('Share'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    // Save the Excel file
+                    _saveFile(filePath);
+                    Navigator.of(context).pop(); // Close the dialog
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving the file: $e')),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to access the Downloads directory')),
+        const SnackBar(content: Text('Unable to access the Downloads directory')),
+      );
+    }
+  }
+
+  Future<void> _shareFile(String filePath) async {
+    try {
+      await Share.shareFiles([filePath], text: 'Sharing Excel file');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error sharing the file: $e')),
+      );
+    }
+  }
+
+  Future<void> _saveFile(String filePath) async {
+    try {
+      final result = await FilePicker.platform.getDirectoryPath();
+      if (result != null) {
+        final destinationPath = '$result/scanned_cards.xlsx';
+        final file = File(filePath);
+        await file.copy(destinationPath);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('File saved at: $destinationPath')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No directory selected')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving the file: $e')),
       );
     }
   }
@@ -341,18 +388,18 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return Container(
-              padding: EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
+                  const Text(
                     'Modify Quantity',
                     style: TextStyle(
                       fontSize: 18.0,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 16.0),
+                  const SizedBox(height: 16.0),
                   TextField(
                     keyboardType: TextInputType.number,
                     onChanged: (value) {
@@ -360,11 +407,11 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                         selectedQuantity = int.tryParse(value) ?? 0;
                       });
                     },
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Quantity',
                     ),
                   ),
-                  SizedBox(height: 16.0),
+                  const SizedBox(height: 16.0),
                   ElevatedButton(
                     onPressed: () async {
                       // Update the quantity in the record
@@ -375,7 +422,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                       await databaseHelper.updateRecord(record);
                       Navigator.of(context).pop(selectedQuantity);
                     },
-                    child: Text('Save'),
+                    child: const Text('Save'),
                   ),
                 ],
               ),
@@ -394,17 +441,13 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   }
   Future<String?> getDownloadPath() async {
     Directory? directory;
-    try {
-      if (Platform.isIOS) {
-        directory = await getApplicationDocumentsDirectory();
-      } else {
-        directory = Directory('/storage/emulated/0/Download');
-        // Put file in global download folder, if for an unknown reason it didn't exist, we fallback
-        // ignore: avoid_slow_async_io
-        if (!await directory.exists()) directory = await getExternalStorageDirectory();
-      }
-    } catch (err, stack) {
-      print('Error while getting downloads directory: $err\n$stack');
+    if (Platform.isIOS) {
+      directory = await getApplicationDocumentsDirectory();
+    } else {
+      directory = Directory('/storage/emulated/0/Download');
+      // Put file in global download folder, if for an unknown reason it didn't exist, we fallback
+      // ignore: avoid_slow_async_io
+      if (!await directory.exists()) directory = await getExternalStorageDirectory();
     }
     return directory?.path;
   }
