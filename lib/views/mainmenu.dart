@@ -45,7 +45,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   }
 
   final RegExp macAddressRegex = RegExp(
-    r'^(?:[0-9A-Fa-f]{2}[:-]?){5}[0-9A-Fa-f]{2}$',
+    r'([0-9A-Fa-f]{2}(?::|-)?){5}[0-9A-Fa-f]{2}',
   );
 
   @override
@@ -173,15 +173,21 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       if (scanData.code == null) {
         return;
       }
-      String qrCode = scanData.code ?? '';
-
+      String qrCode = scanData.code ?? ''.replaceAll('\n', ' ');
+      String mac = macAddressRegex.firstMatch(qrCode)?.group(0) ?? 'N/A';
+      if (!mac.contains(':') && mac != 'N/A') {
+        // add colons to mac address don't add colon in the end
+        mac = mac.replaceAllMapped(RegExp(r".{2}"), (Match m) => "${m.group(0)}:");
+        mac = mac.substring(0, mac.length - 1);
+      }
       Record newRecord = Record(
-        qrData: qrCode.replaceAll('\n', ' '),
+        qrData: qrCode,
         comment: ' ',
         timestamp: DateTime.now(),
-        macAddress: macAddressRegex.firstMatch(qrCode)?.group(0),
+        macAddress: mac,
         quantity: await databaseHelper.getPreviousQuantity() + 1,
       );
+      //DEBUG    print("Current qrdata: ${newRecord.qrData} | macAddress: ${newRecord.macAddress} | quantity: ${newRecord.quantity} | Regex Result ${macAddressRegex.firstMatch(qrCode.replaceAll('\n', ' '))?.group(0)}");
       await databaseHelper.insertRecord(newRecord);
       _loadScannedCards();
 

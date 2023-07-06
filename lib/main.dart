@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'QR to Excel'),
+      home: const MyHomePage(title: 'QR2TAB'),
     );
   }
 }

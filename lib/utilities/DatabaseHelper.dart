@@ -96,8 +96,6 @@ class DatabaseHelper {
     final Database db = await instance.database;
     // find latest record
     final List<Map<String, dynamic>> maps = await db.query('records', orderBy: 'id');
-    print("Trying to find latest record. The record data is : ${maps.lastOrNull?['qrData']}. The quantity is ${maps.lastOrNull?['quantity']}");
-    print(maps);
     return maps.lastOrNull?['quantity'] ?? 0;
   }
 }
