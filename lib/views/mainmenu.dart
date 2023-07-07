@@ -40,7 +40,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   Future<void> _loadScannedCards() async {
     final List<Record> records = await databaseHelper.getRecords();
     setState(() {
-      scannedCards = records;
+      scannedCards = records.reversed.toList();
     });
   }
 
@@ -359,7 +359,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
         // Delete the file if it existss
         await file.create(recursive: true);
         await file.writeAsBytes(excel.encode() as List<int>);
-        // Open the dialog with Share and Save options
+        // O`pen the dialog with Share and Save options
 
         showDialog(
           context: context,
@@ -451,6 +451,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                     ),
+                    maxLength: 6,
                     onChanged: (value) {
                       setState(() {
                         selectedQuantity = int.tryParse(value) ?? 0;
