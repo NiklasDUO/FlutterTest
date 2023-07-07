@@ -33,19 +33,6 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        backgroundColor: Theme.of(context).primaryColor,
-        title: Text(widget.title,style: TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),),
-      ),
-      body: Center(
-        child: QRCodeScannerPage()
-      ),
-    );
+    return const QRCodeScannerPage();
   }
 }
