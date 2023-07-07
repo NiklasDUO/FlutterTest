@@ -3,6 +3,7 @@
 import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
@@ -11,6 +12,9 @@ import '../classes/record.dart';
 import 'package:share/share.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:circular_countdown_timer/circular_countdown_timer.dart';
+
 
 class QRCodeScannerPage extends StatefulWidget {
   const QRCodeScannerPage({Key? key}) : super(key: key);
@@ -191,18 +195,23 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
+              Row(
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Close'),
+                  ),
+
+                ],
+              ),
+              const SizedBox(height: 10.0),
               Expanded(
                 child: QRView(
                   key: qrKey,
                   onQRViewCreated: _onQRViewCreated,
                 ),
-              ),
-              const SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text('Close'),
               ),
             ],
           ),
@@ -320,9 +329,8 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
             ),
             TextButton(
               onPressed: () async {
-                await databaseHelper.clearDatabase();
-                _loadScannedCards();
-                Navigator.pop(context);
+                Navigator.pop(context); // Close the dialog
+                await _clearAndShowBottomSheet(context);
               },
               child: const Text('Clear'),
             ),
@@ -330,6 +338,87 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
         );
       },
     );
+  }
+
+  Future<void> _clearAndShowBottomSheet(BuildContext context) async {
+    // Clear the database
+    await databaseHelper.clearDatabase();
+    _loadScannedCards();
+
+    // Show the bottom sheet with the countdown timer
+    int count = 5;
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        final countDownController = CountDownController(); // Create a CountDownController
+
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            // Countdown timer
+            Future.delayed(const Duration(seconds: 1), () {
+              if (count > 0) {
+                setState(() {
+                  count--;
+                });
+              } else {
+                Navigator.pop(context);
+              }
+            });
+
+            return Container(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 16),
+                  CircularCountDownTimer(
+                    duration: 5,
+                    initialDuration: count,
+                    controller: countDownController, // Set the controller
+                    width: 100,
+                    height: 100,
+                    ringColor: Colors.grey,
+                    ringGradient: null,
+                    fillColor: Colors.green,
+                    fillGradient: null,
+                    backgroundColor: Colors.transparent,
+                    strokeWidth: 6.0,
+                    strokeCap: StrokeCap.round,
+                    textStyle: const TextStyle(
+                      fontSize: 24.0,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textFormat: CountdownTextFormat.S,
+                    isReverse: true,
+                    isReverseAnimation: true,
+                    isTimerTextShown: true,
+                    autoStart: true,
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      // Start the countdown timer
+                      countDownController.start();
+
+                      // Restore the database
+                      _restoreDatabase();
+                      Navigator.pop(context); // Close the bottom sheet
+                    },
+                    child: const Text('Cancel'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+
+  void _restoreDatabase() {
+    // Perform restore actions
   }
   void _exportToExcel() async {
     if (await Permission.manageExternalStorage.isDenied) {

@@ -98,4 +98,7 @@ class DatabaseHelper {
     final List<Map<String, dynamic>> maps = await db.query('records', orderBy: 'id');
     return maps.lastOrNull?['quantity'] ?? 0;
   }
+  Future<Database> getDatabase() async {
+    return await instance.database;
+  }
 }
