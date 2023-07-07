@@ -52,6 +52,46 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   Widget build(BuildContext context) {
     DateFormat format = DateFormat("dd.MM.yyyy HH:mm");
     return Scaffold(
+      appBar: AppBar(
+        title:
+        const Padding(
+          padding: EdgeInsets.only(right: 0.0),
+          child: Text("QR 2 TAB",style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold),)),
+        centerTitle: false,
+        backgroundColor: Theme.of(context).primaryColor,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 10.0),
+            child: IconButton(
+              icon: const Icon(Icons.qr_code_outlined),
+              color: Colors.white,
+              onPressed: () {
+                _openQRCodeScanner(context);
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 10.0),
+            child: IconButton(
+              icon: const Icon(Icons.save),
+              color: Colors.white,
+              onPressed: () {
+                _exportToExcel();
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 10.0),
+            child: IconButton(
+              icon: const Icon(Icons.delete_forever),
+              color: Colors.white,
+              onPressed: () {
+                _showClearConfirmationDialog(context);
+              },
+            ),
+          )
+        ],
+      ),
       body: Center(
         child: ListView.builder(
           itemCount: scannedCards.length,
@@ -111,7 +151,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
           },
         ),
       ),
-      floatingActionButton: Column(
+      /*floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -137,7 +177,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
             child: const Icon(Icons.save,color: Colors.white),
           ),
         ],
-      ),
+      ),*/
     );
   }
 
