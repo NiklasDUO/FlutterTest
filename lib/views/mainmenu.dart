@@ -277,6 +277,19 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
           actions: [
             TextButton(
               onPressed: () async {
+                _deleteRecord(record);
+                Navigator.pop(context);
+              },
+              child: const Text('Delete'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
                 // Update the record in the database
                 record.qrData = qrDataController.text;
                 record.comment = commentController.text;
@@ -286,13 +299,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                 Navigator.pop(context);
               },
               child: const Text('Submit'),
-            ),
-            TextButton(
-              onPressed: () async {
-                _deleteRecord(record);
-                Navigator.pop(context);
-              },
-              child: const Text('Delete'),
             ),
           ],
         );
