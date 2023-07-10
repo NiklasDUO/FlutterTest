@@ -218,9 +218,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                       foregroundColor: MaterialStateProperty.all<Color>(Theme.of(context).primaryColor)
                     ),
                     onPressed: () {
-                      print("Before : ${settings.prefs.getBool('multiscan')}");
                       settings.prefs.setBool('multiscan',!(settings.prefs.getBool('multiscan') as bool));
-                      print("After : ${settings.prefs.getBool('multiscan')}");
                     },
                     child: const Text('Multiscan'),
                   ),
@@ -231,6 +229,13 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                 child: QRView(
                   key: qrKey,
                   onQRViewCreated: _onQRViewCreated,
+                  overlay: QrScannerOverlayShape(
+                    borderRadius: 10,
+                    borderColor: Theme.of(context).primaryColor,
+                    borderLength: 30,
+                    borderWidth: 10,
+                    cutOutSize: 250,
+                  ),
                 ),
               ),
             ],
@@ -266,14 +271,15 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       _loadScannedCards();
       audioPlayer.setVolume(1);
       audioPlayer.play(AssetSource('beep.wav'));
-      controller.dispose();
       final isMultiscan = settings.prefs.getBool('multiscan') as bool;
       if (!isMultiscan)
       {
+        controller.dispose();
         Navigator.pop(context);
       }
       else{
-        Timer(const Duration(seconds: 5),() => {});
+        this.controller.pauseCamera();
+        Timer(const Duration(seconds: 3),() => this.controller.resumeCamera());
       }
     });
   }
