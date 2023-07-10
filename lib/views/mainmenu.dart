@@ -3,7 +3,6 @@
 import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
@@ -12,8 +11,7 @@ import '../classes/record.dart';
 import 'package:share/share.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:circular_countdown_timer/circular_countdown_timer.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 
 class QRCodeScannerPage extends StatefulWidget {
@@ -26,6 +24,7 @@ class QRCodeScannerPage extends StatefulWidget {
 class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   late QRViewController controller;
+  final AudioPlayer audioPlayer = AudioPlayer();
   final DatabaseHelper databaseHelper = DatabaseHelper.instance;
   List<Record> scannedCards = [];
 
@@ -39,6 +38,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   void initState() {
     super.initState();
     _loadScannedCards();
+    audioPlayer.setSource(AssetSource('assets/sounds'));
   }
 
   Future<void> _loadScannedCards() async {
@@ -244,7 +244,8 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       //DEBUG    print("Current qrdata: ${newRecord.qrData} | macAddress: ${newRecord.macAddress} | quantity: ${newRecord.quantity} | Regex Result ${macAddressRegex.firstMatch(qrCode.replaceAll('\n', ' '))?.group(0)}");
       await databaseHelper.insertRecord(newRecord);
       _loadScannedCards();
-
+      audioPlayer.setVolume(1);
+      audioPlayer.play(AssetSource('beep.wav'));
       controller.dispose();
       Navigator.pop(context);
     });
@@ -293,6 +294,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                 // Update the record in the database
                 record.qrData = qrDataController.text;
                 record.comment = commentController.text;
+                record.macAddress = macAddressRegex.firstMatch(qrDataController.text)?.group(0) ?? 'N/A';
                 await databaseHelper.updateRecord(record);
 
                 setState(() {});
@@ -347,85 +349,10 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   }
 
   Future<void> _clearAndShowBottomSheet(BuildContext context) async {
-    // Clear the database
     await databaseHelper.clearDatabase();
     _loadScannedCards();
-
-    // Show the bottom sheet with the countdown timer
-    int count = 5;
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        final countDownController = CountDownController(); // Create a CountDownController
-
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            // Countdown timer
-            Future.delayed(const Duration(seconds: 1), () {
-              if (count > 0) {
-                setState(() {
-                  count--;
-                });
-              } else {
-                Navigator.pop(context);
-              }
-            });
-
-            return Container(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 16),
-                  CircularCountDownTimer(
-                    duration: 5,
-                    initialDuration: count,
-                    controller: countDownController, // Set the controller
-                    width: 100,
-                    height: 100,
-                    ringColor: Colors.grey,
-                    ringGradient: null,
-                    fillColor: Colors.green,
-                    fillGradient: null,
-                    backgroundColor: Colors.transparent,
-                    strokeWidth: 6.0,
-                    strokeCap: StrokeCap.round,
-                    textStyle: const TextStyle(
-                      fontSize: 24.0,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textFormat: CountdownTextFormat.S,
-                    isReverse: true,
-                    isReverseAnimation: true,
-                    isTimerTextShown: true,
-                    autoStart: true,
-                  ),
-                  SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      // Start the countdown timer
-                      countDownController.start();
-
-                      // Restore the database
-                      _restoreDatabase();
-                      Navigator.pop(context); // Close the bottom sheet
-                    },
-                    child: const Text('Cancel'),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
   }
 
-
-  void _restoreDatabase() {
-    // Perform restore actions
-  }
   void _exportToExcel() async {
     if (await Permission.manageExternalStorage.isDenied) {
       Permission.manageExternalStorage.request();
