@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
 
+import 'dart:async';
 import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +13,8 @@ import 'package:share/share.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../utilities/settings.dart';
 
 
 class QRCodeScannerPage extends StatefulWidget {
@@ -24,6 +27,7 @@ class QRCodeScannerPage extends StatefulWidget {
 class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   late QRViewController controller;
+  final Settings settings = Settings();
   final AudioPlayer audioPlayer = AudioPlayer();
   final DatabaseHelper databaseHelper = DatabaseHelper.instance;
   List<Record> scannedCards = [];
@@ -38,7 +42,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   void initState() {
     super.initState();
     _loadScannedCards();
-    audioPlayer.setSource(AssetSource('assets/sounds'));
   }
 
   Future<void> _loadScannedCards() async {
@@ -203,7 +206,24 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                     },
                     child: const Text('Close'),
                   ),
-
+                  const SizedBox(width: 20),
+                  ElevatedButton(
+                    style: settings.prefs.getBool('multiscan') ?? true
+                        ? ButtonStyle(
+                      backgroundColor: MaterialStateProperty.all<Color>(Theme.of(context).primaryColor),
+                      foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
+                    )
+                        : ButtonStyle(
+                      backgroundColor: MaterialStateProperty.all<Color>(Colors.white),
+                      foregroundColor: MaterialStateProperty.all<Color>(Theme.of(context).primaryColor)
+                    ),
+                    onPressed: () {
+                      print("Before : ${settings.prefs.getBool('multiscan')}");
+                      settings.prefs.setBool('multiscan',!(settings.prefs.getBool('multiscan') as bool));
+                      print("After : ${settings.prefs.getBool('multiscan')}");
+                    },
+                    child: const Text('Multiscan'),
+                  ),
                 ],
               ),
               const SizedBox(height: 10.0),
@@ -247,7 +267,14 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       audioPlayer.setVolume(1);
       audioPlayer.play(AssetSource('beep.wav'));
       controller.dispose();
-      Navigator.pop(context);
+      final isMultiscan = settings.prefs.getBool('multiscan') as bool;
+      if (!isMultiscan)
+      {
+        Navigator.pop(context);
+      }
+      else{
+        Timer(const Duration(seconds: 5),() => {});
+      }
     });
   }
 
