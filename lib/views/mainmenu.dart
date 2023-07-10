@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
 
+import 'dart:async';
 import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,10 @@ import '../classes/record.dart';
 import 'package:share/share.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../utilities/settings.dart';
+
 
 class QRCodeScannerPage extends StatefulWidget {
   const QRCodeScannerPage({Key? key}) : super(key: key);
@@ -22,6 +27,8 @@ class QRCodeScannerPage extends StatefulWidget {
 class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   late QRViewController controller;
+  final Settings settings = Settings();
+  final AudioPlayer audioPlayer = AudioPlayer();
   final DatabaseHelper databaseHelper = DatabaseHelper.instance;
   List<Record> scannedCards = [];
 
@@ -191,18 +198,45 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
+              Row(
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Close'),
+                  ),
+                  const SizedBox(width: 20),
+                  ElevatedButton(
+                    style: settings.prefs.getBool('multiscan') ?? true
+                        ? ButtonStyle(
+                      backgroundColor: MaterialStateProperty.all<Color>(Theme.of(context).primaryColor),
+                      foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
+                    )
+                        : ButtonStyle(
+                      backgroundColor: MaterialStateProperty.all<Color>(Colors.white),
+                      foregroundColor: MaterialStateProperty.all<Color>(Theme.of(context).primaryColor)
+                    ),
+                    onPressed: () {
+                      settings.prefs.setBool('multiscan',!(settings.prefs.getBool('multiscan') as bool));
+                    },
+                    child: const Text('Multiscan'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10.0),
               Expanded(
                 child: QRView(
                   key: qrKey,
                   onQRViewCreated: _onQRViewCreated,
+                  overlay: QrScannerOverlayShape(
+                    borderRadius: 10,
+                    borderColor: Theme.of(context).primaryColor,
+                    borderLength: 30,
+                    borderWidth: 10,
+                    cutOutSize: 250,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text('Close'),
               ),
             ],
           ),
@@ -235,9 +269,18 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       //DEBUG    print("Current qrdata: ${newRecord.qrData} | macAddress: ${newRecord.macAddress} | quantity: ${newRecord.quantity} | Regex Result ${macAddressRegex.firstMatch(qrCode.replaceAll('\n', ' '))?.group(0)}");
       await databaseHelper.insertRecord(newRecord);
       _loadScannedCards();
-
-      controller.dispose();
-      Navigator.pop(context);
+      audioPlayer.setVolume(1);
+      audioPlayer.play(AssetSource('beep.wav'));
+      final isMultiscan = settings.prefs.getBool('multiscan') as bool;
+      if (!isMultiscan)
+      {
+        controller.dispose();
+        Navigator.pop(context);
+      }
+      else{
+        this.controller.pauseCamera();
+        Timer(const Duration(seconds: 3),() => this.controller.resumeCamera());
+      }
     });
   }
 
@@ -268,22 +311,29 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
           actions: [
             TextButton(
               onPressed: () async {
+                _deleteRecord(record);
+                Navigator.pop(context);
+              },
+              child: const Text('Delete'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
                 // Update the record in the database
                 record.qrData = qrDataController.text;
                 record.comment = commentController.text;
+                record.macAddress = macAddressRegex.firstMatch(qrDataController.text)?.group(0) ?? 'N/A';
                 await databaseHelper.updateRecord(record);
 
                 setState(() {});
                 Navigator.pop(context);
               },
               child: const Text('Submit'),
-            ),
-            TextButton(
-              onPressed: () async {
-                _deleteRecord(record);
-                Navigator.pop(context);
-              },
-              child: const Text('Delete'),
             ),
           ],
         );
@@ -320,9 +370,8 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
             ),
             TextButton(
               onPressed: () async {
-                await databaseHelper.clearDatabase();
-                _loadScannedCards();
-                Navigator.pop(context);
+                Navigator.pop(context); // Close the dialog
+                await _clearAndShowBottomSheet(context);
               },
               child: const Text('Clear'),
             ),
@@ -331,6 +380,12 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       },
     );
   }
+
+  Future<void> _clearAndShowBottomSheet(BuildContext context) async {
+    await databaseHelper.clearDatabase();
+    _loadScannedCards();
+  }
+
   void _exportToExcel() async {
     if (await Permission.manageExternalStorage.isDenied) {
       Permission.manageExternalStorage.request();

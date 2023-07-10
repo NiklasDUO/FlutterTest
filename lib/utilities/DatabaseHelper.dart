@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../classes/record.dart';
@@ -19,6 +21,9 @@ class DatabaseHelper {
     if (_database != null) return _database!;
     _database = await _initDatabase();
     return _database!;
+  }
+  Batch batch() {
+    return _database!.batch();
   }
 
   Future<Database> _initDatabase() async {
@@ -97,5 +102,8 @@ class DatabaseHelper {
     // find latest record
     final List<Map<String, dynamic>> maps = await db.query('records', orderBy: 'id');
     return maps.lastOrNull?['quantity'] ?? 0;
+  }
+  Future<Database> getDatabase() async {
+    return await instance.database;
   }
 }
