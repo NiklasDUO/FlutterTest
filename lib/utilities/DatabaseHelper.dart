@@ -112,4 +112,10 @@ class DatabaseHelper {
       return maps.isNotEmpty;
     });
   }
+  Future<void> writeLines(List<Record> list) async{
+    final Database db = await instance.database;
+    for (var element in list) {
+      db.insert('records', element.toMap());
+    }
+  }
 }

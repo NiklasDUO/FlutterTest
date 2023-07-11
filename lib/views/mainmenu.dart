@@ -2,11 +2,13 @@
 
 import 'dart:async';
 import 'dart:io';
+import 'package:circular_countdown_timer/circular_countdown_timer.dart';
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:sqflite/sqflite.dart';
 import '../utilities/DatabaseHelper.dart';
 import '../classes/record.dart';
 import 'package:share/share.dart';
@@ -30,6 +32,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   final AudioPlayer audioPlayer = AudioPlayer();
   final DatabaseHelper databaseHelper = DatabaseHelper.instance;
   List<Record> scannedCards = [];
+  List<Record> backupDatabase = [];
 
   @override
   void dispose() {
@@ -59,7 +62,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
     DateFormat format = DateFormat("dd.MM.yyyy HH:mm");
     return Scaffold(
       appBar: AppBar(
-        iconTheme: IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: Colors.white),
         title:
         const Padding(
           padding: EdgeInsets.only(right: 0.0),
@@ -402,7 +405,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Clear Database'),
-          content: const Text('Are you sure you want to clear the database? This action cannot be undone.'),
+          content: const Text('Are you sure you want to clear the database?'),
           actions: [
             TextButton(
               onPressed: () {
@@ -424,7 +427,46 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   }
 
   Future<void> _clearAndShowBottomSheet(BuildContext context) async {
+    backupDatabase = await databaseHelper.getRecords();
     await databaseHelper.clearDatabase();
+    _loadScannedCards();
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SizedBox(
+          height: 200,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularCountDownTimer(
+                  width: 100,
+                  height: 100,
+                  duration: 5,
+                  isReverse: true,
+                  fillColor: Theme.of(context).primaryColor,
+                  ringColor: Colors.white,
+                  autoStart: true,
+                  onComplete: () =>{
+                    Navigator.pop(context),
+
+                  },
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                    onPressed: backupDB,
+                    child: const Text('Cancel'))
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+  void backupDB() async{
+    databaseHelper.writeLines(backupDatabase);
+    Navigator.pop(context);
     _loadScannedCards();
   }
 
