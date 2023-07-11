@@ -13,7 +13,6 @@ import 'package:share/share.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../utilities/settings.dart';
 
 
@@ -60,6 +59,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
     DateFormat format = DateFormat("dd.MM.yyyy HH:mm");
     return Scaffold(
       appBar: AppBar(
+        iconTheme: IconThemeData(color: Colors.white),
         title:
         const Padding(
           padding: EdgeInsets.only(right: 0.0),
@@ -98,6 +98,41 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
             ),
           )
         ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          // Important: Remove any padding from the ListView.
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor,
+              ),
+              child: const Text('QR 2 TAB',style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold,fontSize: 24),),
+            ),
+            ListTile(
+              title: const Text('Scanner'),
+              onTap: () {
+                // Update the state of the app.
+                // ...
+              },
+            ),
+            ListTile(
+              title: const Text('Settings'),
+              onTap: () {
+                // Update the state of the app.
+                // ...
+              },
+            ),
+            ListTile(
+              title: const Text('About'),
+              onTap: () {
+                // Update the state of the app.
+                // ...
+              },
+            ),
+          ],
+        ),
       ),
       body: Center(
         child: ListView.builder(
@@ -268,9 +303,9 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       );
       //DEBUG    print("Current qrdata: ${newRecord.qrData} | macAddress: ${newRecord.macAddress} | quantity: ${newRecord.quantity} | Regex Result ${macAddressRegex.firstMatch(qrCode.replaceAll('\n', ' '))?.group(0)}");
       await databaseHelper.insertRecord(newRecord);
+      audioPlayer.setVolume(0.5);
+      audioPlayer.play(AssetSource('beep.mp3'));
       _loadScannedCards();
-      audioPlayer.setVolume(1);
-      audioPlayer.play(AssetSource('beep.wav'));
       final isMultiscan = settings.prefs.getBool('multiscan') as bool;
       if (!isMultiscan)
       {
