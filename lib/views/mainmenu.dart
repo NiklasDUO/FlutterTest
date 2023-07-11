@@ -282,6 +282,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
 
   void _onQRViewCreated(QRViewController controller) {
     this.controller = controller;
+    final isMultiscan = settings.prefs.getBool('multiscan') as bool;
     controller.scannedDataStream.listen((scanData) async {
       if (scanData.code == null) {
         return;
@@ -301,12 +302,18 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
         macAddress: mac,
         quantity: await databaseHelper.getPreviousQuantity() + 1,
       );
+      // in multiscan check for dupes
+      if (isMultiscan && await databaseHelper.exist(newRecord)) {
+        audioPlayer.play(AssetSource('error.wav'));
+        controller.pauseCamera();
+        Timer(const Duration(microseconds: 50),() => controller.resumeCamera());
+        return;
+      }
       //DEBUG    print("Current qrdata: ${newRecord.qrData} | macAddress: ${newRecord.macAddress} | quantity: ${newRecord.quantity} | Regex Result ${macAddressRegex.firstMatch(qrCode.replaceAll('\n', ' '))?.group(0)}");
       await databaseHelper.insertRecord(newRecord);
       audioPlayer.setVolume(0.5);
       audioPlayer.play(AssetSource('beep.mp3'));
       _loadScannedCards();
-      final isMultiscan = settings.prefs.getBool('multiscan') as bool;
       if (!isMultiscan)
       {
         controller.dispose();
@@ -314,7 +321,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       }
       else{
         this.controller.pauseCamera();
-        Timer(const Duration(seconds: 3),() => this.controller.resumeCamera());
+        Timer(const Duration(seconds: 2),() => this.controller.resumeCamera());
       }
     });
   }
