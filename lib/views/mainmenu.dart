@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
-import 'package:sqflite/sqflite.dart';
 import '../utilities/DatabaseHelper.dart';
 import '../classes/record.dart';
 import 'package:share/share.dart';
@@ -26,6 +25,7 @@ class QRCodeScannerPage extends StatefulWidget {
 }
 
 class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
+  // import color scheme from main.dart
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   late QRViewController controller;
   final Settings settings = Settings();
@@ -61,168 +61,110 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   Widget build(BuildContext context) {
     DateFormat format = DateFormat("dd.MM.yyyy HH:mm");
     return Scaffold(
-      appBar: AppBar(
-        iconTheme: const IconThemeData(color: Colors.white),
-        title:
-        const Padding(
-          padding: EdgeInsets.only(right: 0.0),
-          child: Text("QR 2 TAB",style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold),)),
-        centerTitle: false,
-        backgroundColor: Theme.of(context).primaryColor,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 10.0),
-            child: IconButton(
-              icon: const Icon(Icons.qr_code_outlined),
-              color: Colors.white,
-              onPressed: () {
-                _openQRCodeScanner(context);
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 10.0),
-            child: IconButton(
-              icon: const Icon(Icons.save),
-              color: Colors.white,
-              onPressed: () {
-                _exportToExcel();
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 10.0),
-            child: IconButton(
-              icon: const Icon(Icons.delete_forever),
-              color: Colors.white,
-              onPressed: () {
-                _showClearConfirmationDialog(context);
-              },
-            ),
-          )
-        ],
-      ),
-      drawer: Drawer(
-        child: ListView(
-          // Important: Remove any padding from the ListView.
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(50.0),
+        child:
+          AppBar(
+            backgroundColor: Theme.of(context).primaryColor,
+            title: const Text('QR 2 TAB'),
+            actions: [
+              IconButton(
+                  icon: const Icon(Icons.qr_code_outlined),
+                  color: Colors.white,
+                  onPressed: () {
+                    _openQRCodeScanner(context);
+                  },
+                ),
+              IconButton(
+                icon: const Icon(Icons.edit),
+                color: Colors.white,
+                onPressed: () {
+                  _showNewDialog(context);
+                },
               ),
-              child: const Text('QR 2 TAB',style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold,fontSize: 24),),
-            ),
-            ListTile(
-              title: const Text('Scanner'),
-              onTap: () {
-                // Update the state of the app.
-                // ...
-              },
-            ),
-            ListTile(
-              title: const Text('Settings'),
-              onTap: () {
-                // Update the state of the app.
-                // ...
-              },
-            ),
-            ListTile(
-              title: const Text('About'),
-              onTap: () {
-                // Update the state of the app.
-                // ...
-              },
+              IconButton(
+                icon: const Icon(Icons.save),
+                color: Colors.white,
+                onPressed: () {
+                  _exportToExcel();
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_forever),
+                color: Colors.white,
+                onPressed: () {
+                  _showClearConfirmationDialog(context);
+                },
+              ),
+            ],
+          ),
+      ),
+      body: Center(
+        child: Column(
+          children: [
+            Expanded(
+              child:
+                ListView.builder(
+                  itemCount: scannedCards.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    return Card(
+                      child: ListTile(
+                        leading: GestureDetector(
+                          child:
+                          CircleAvatar(
+                            backgroundColor: Theme.of(context).primaryColor,
+                            radius: 24.0,
+                            child: Text(
+                              scannedCards[index].quantity.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14.0,
+                              ),
+                            ),
+                          ),
+                          onTap: (){
+                            _openNumberModal(context, scannedCards[index]);
+                          },
+                        ),
+                        title: Align(
+                          alignment: Alignment.centerRight,
+                          child:
+                          Text(
+                              format.format(scannedCards[index].timestamp),
+                              style: const TextStyle(fontSize: 12.0)
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child:Text(
+                                scannedCards[index].macAddress ?? 'N/A',
+                                style: const TextStyle(fontSize: 12.0,fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child:Text(
+                                scannedCards[index].comment,
+                                style: const TextStyle(fontSize: 14.0),
+                              ),
+                            ),
+                          ],
+                        ),
+                        onTap: () {
+                          _showEditDialog(context, scannedCards[index]);
+                        },
+                      ),
+                    );
+                  },
+                ),
             ),
           ],
         ),
       ),
-      body: Center(
-        child: ListView.builder(
-          itemCount: scannedCards.length,
-          itemBuilder: (BuildContext context, int index) {
-            return Card(
-              child: ListTile(
-                leading: GestureDetector(
-                  child:
-                    CircleAvatar(
-                      backgroundColor: Theme.of(context).primaryColor,
-                      radius: 24.0,
-                      child: Text(
-                        scannedCards[index].quantity.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14.0,
-                        ),
-                      ),
-                    ),
-                  onTap: (){
-                    _openNumberModal(context, scannedCards[index]);
-                  },
-                ),
-                title: Align(
-                  alignment: Alignment.centerRight,
-                  child:
-                    Text(
-                        format.format(scannedCards[index].timestamp),
-                      style: const TextStyle(fontSize: 12.0)
-                    ),
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child:Text(
-                      scannedCards[index].macAddress ?? 'N/A',
-                      style: const TextStyle(fontSize: 12.0,fontWeight: FontWeight.bold),
-                    ),
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child:Text(
-                        scannedCards[index].comment,
-                        style: const TextStyle(fontSize: 14.0),
-                      ),
-                    ),
-                  ],
-                ),
-                onTap: () {
-                  _showEditDialog(context, scannedCards[index]);
-                },
-              ),
-            );
-          },
-        ),
-      ),
-      /*floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          FloatingActionButton(
-            backgroundColor: Theme.of(context).primaryColor,
-            onPressed: () {
-              _showClearConfirmationDialog(context);
-            },
-            child: const Icon(Icons.delete_forever, color: Colors.white),
-          ),
-          const SizedBox(height: 16.0),
-          FloatingActionButton(
-            backgroundColor: Theme.of(context).primaryColor,
-            onPressed: () {
-              _openQRCodeScanner(context);
-            },
-            child: const Icon(Icons.qr_code,color: Colors.white,),
-          ),
-          const SizedBox(height: 16.0),
-          FloatingActionButton(
-            backgroundColor: Theme.of(context).primaryColor,
-            onPressed: _exportToExcel,
-            child: const Icon(Icons.save,color: Colors.white),
-          ),
-        ],
-      ),*/
     );
   }
 
@@ -252,8 +194,8 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                       foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
                     )
                         : ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all<Color>(Colors.white),
-                      foregroundColor: MaterialStateProperty.all<Color>(Theme.of(context).primaryColor)
+                        backgroundColor: MaterialStateProperty.all<Color>(Colors.white),
+                        foregroundColor: MaterialStateProperty.all<Color>(Theme.of(context).primaryColor)
                     ),
                     onPressed: () {
                       settings.prefs.setBool('multiscan',!(settings.prefs.getBool('multiscan') as bool));
@@ -344,12 +286,15 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                 controller: qrDataController,
                 minLines: 1,
                 maxLines: 6,
+                decoration: const InputDecoration(
+                  hintText: 'QR Data',
+                ),
               ),
               TextField(
-                controller: commentController,
-                decoration: const InputDecoration(
-                  hintText: 'Comment',
-                )
+                  controller: commentController,
+                  decoration: const InputDecoration(
+                    hintText: 'Comment',
+                  )
               ),
             ],
           ),
@@ -614,7 +559,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                     Navigator.of(context).pop(selectedQuantity);
                   },
                   child: const Text(
-                      'Save',
+                    'Save',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -647,5 +592,64 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       if (!await directory.exists()) directory = await getExternalStorageDirectory();
     }
     return directory?.path;
+  }
+
+  void _showNewDialog(BuildContext context) async{
+    final TextEditingController qrDataController = TextEditingController();
+    final TextEditingController commentController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: qrDataController,
+                minLines: 1,
+                maxLines: 6,
+                decoration: const InputDecoration(
+                  hintText: 'QR Data',
+                ),
+              ),
+              TextField(
+                  controller: commentController,
+                  decoration: const InputDecoration(
+                    hintText: 'Comment',
+                  )
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                // Update the record in the database
+                Record record = Record(
+                  qrData : qrDataController.text,
+                  comment : commentController.text,
+                  macAddress : macAddressRegex.firstMatch(qrDataController.text)?.group(0) ?? 'N/A',
+                  timestamp: DateTime.now(),
+                  quantity: await databaseHelper.getPreviousQuantity() + 1,
+                );
+                await databaseHelper.insertRecord(record);
+
+                setState(() {});
+                _loadScannedCards();
+                Navigator.pop(context);
+              },
+              child: const Text('Submit'),
+            ),
+          ],
+        );
+      },
+    );
+    _loadScannedCards();
   }
 }
