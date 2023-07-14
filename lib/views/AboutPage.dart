@@ -4,19 +4,22 @@ class AboutPage extends StatefulWidget {
   const AboutPage({Key? key}) : super(key: key);
 
   @override
-  _SettingsPageState createState() => _SettingsPageState();
+  _AboutPageState createState() => _AboutPageState();
 }
 
-class _SettingsPageState extends State<AboutPage> {
+class _AboutPageState extends State<AboutPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('About'),
-        centerTitle: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(50.0),
+        child: AppBar(
+          title: const Text('About'),
+          centerTitle: true,
+        ),
       ),
       body: const Center(
-        child: Text('Settings'),
+        child: Text('About'),
       ),
     );
   }

@@ -8,5 +8,6 @@ class Settings{
   void init() async{
     prefs = await SharedPreferences.getInstance();
     prefs.setBool("multiscan", false);
+    prefs.setString('theme', "green");
   }
 }
