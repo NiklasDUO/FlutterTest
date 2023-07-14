@@ -106,4 +106,16 @@ class DatabaseHelper {
   Future<Database> getDatabase() async {
     return await instance.database;
   }
+  Future<bool> exist(Record record) {
+    return instance.database.then((db) async {
+      final List<Map<String, dynamic>> maps = await db.query('records', where: 'qrData = ?', whereArgs: [record.qrData]);
+      return maps.isNotEmpty;
+    });
+  }
+  Future<void> writeLines(List<Record> list) async{
+    final Database db = await instance.database;
+    for (var element in list) {
+      db.insert('records', element.toMap());
+    }
+  }
 }
