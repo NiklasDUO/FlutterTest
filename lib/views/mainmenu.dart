@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../utilities/DatabaseHelper.dart';
 import '../classes/record.dart';
 import 'package:share/share.dart';
@@ -15,7 +16,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../utilities/settings.dart';
-
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class QRCodeScannerPage extends StatefulWidget {
   const QRCodeScannerPage({Key? key}) : super(key: key);
@@ -25,18 +26,36 @@ class QRCodeScannerPage extends StatefulWidget {
 }
 
 class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
-  // import color scheme from main.dart
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+  late SharedPreferences prefs;
   late QRViewController controller;
+
+  //AD
+  late BannerAd _bannerAd;
+  InterstitialAd? _interstitialAd;
+  bool _isBannerAdLoaded = false;
+
+
   final Settings settings = Settings();
   final AudioPlayer audioPlayer = AudioPlayer();
   final DatabaseHelper databaseHelper = DatabaseHelper.instance;
   List<Record> scannedCards = [];
   List<Record> backupDatabase = [];
 
+
+  //TODO: Change ID after approval
+  final adUnitId = Platform.isAndroid
+      ? 'ca-app-pub-3940256099942544/6300978111'
+      : 'ca-app-pub-3940256099942544/2934735716';
+  final videoUnitId = Platform.isAndroid
+      ? 'ca-app-pub-3940256099942544/1033173712'
+      : 'ca-app-pub-3940256099942544/1033173712';
+
+
   @override
   void dispose() {
     controller.dispose();
+    _bannerAd.dispose();
     super.dispose();
   }
 
@@ -44,10 +63,12 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   void initState() {
     super.initState();
     _loadScannedCards();
+    loadAd();
   }
 
   Future<void> _loadScannedCards() async {
     final List<Record> records = await databaseHelper.getRecords();
+    prefs = await SharedPreferences.getInstance();
     setState(() {
       scannedCards = records.reversed.toList();
     });
@@ -61,120 +82,162 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   Widget build(BuildContext context) {
     DateFormat format = DateFormat("dd.MM.yyyy HH:mm");
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(50.0),
-        child:
-          AppBar(
-            backgroundColor: Theme.of(context).primaryColor,
-            title: const Text('QR 2 TAB'),
-            actions: [
-              IconButton(
-                  icon: const Icon(Icons.qr_code_outlined),
-                  color: Colors.white,
-                  onPressed: () {
-                    _openQRCodeScanner(context);
-                  },
-                ),
-              IconButton(
-                icon: const Icon(Icons.edit),
-                color: Colors.white,
-                onPressed: () {
-                  _showNewDialog(context);
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.save),
-                color: Colors.white,
-                onPressed: () {
-                  _exportToExcel();
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_forever),
-                color: Colors.white,
-                onPressed: () {
-                  _showClearConfirmationDialog(context);
-                },
-              ),
-            ],
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).primaryColor,
+        title: const Text('QR 2 TAB'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_outlined),
+            color: Colors.white,
+            onPressed: () {
+              _openQRCodeScanner(context);
+            },
           ),
+          IconButton(
+            icon: const Icon(Icons.edit),
+            color: Colors.white,
+            onPressed: () {
+              _showNewDialog(context);
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.save),
+            color: Colors.white,
+            onPressed: () {
+              _exportToExcel();
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_forever),
+            color: Colors.white,
+            onPressed: () {
+              _showClearConfirmationDialog(context);
+            },
+          ),
+        ],
       ),
       body: Center(
         child: Column(
           children: [
             Expanded(
-              child:
-                ListView.builder(
-                  itemCount: scannedCards.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    return Card(
-                      child: ListTile(
-                        leading: GestureDetector(
-                          child:
-                          CircleAvatar(
-                            backgroundColor: Theme.of(context).primaryColor,
-                            radius: 24.0,
-                            child: Text(
-                              scannedCards[index].quantity.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14.0,
-                              ),
+              child: ListView.builder(
+                itemCount: scannedCards.length,
+                itemBuilder: (BuildContext context, int index) {
+                  return Card(
+                    child: ListTile(
+                      leading: GestureDetector(
+                        child: CircleAvatar(
+                          backgroundColor: Theme.of(context).primaryColor,
+                          radius: 24.0,
+                          child: Text(
+                            scannedCards[index].quantity.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14.0,
                             ),
                           ),
-                          onTap: (){
-                            _openNumberModal(context, scannedCards[index]);
-                          },
-                        ),
-                        title: Align(
-                          alignment: Alignment.centerRight,
-                          child:
-                          Text(
-                              format.format(scannedCards[index].timestamp),
-                              style: const TextStyle(fontSize: 12.0)
-                          ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child:Text(
-                                scannedCards[index].macAddress ?? 'N/A',
-                                style: const TextStyle(fontSize: 12.0,fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child:Text(
-                                scannedCards[index].comment,
-                                style: const TextStyle(fontSize: 14.0),
-                              ),
-                            ),
-                          ],
                         ),
                         onTap: () {
-                          _showEditDialog(context, scannedCards[index]);
+                          _openNumberModal(context, scannedCards[index]);
                         },
                       ),
-                    );
-                  },
-                ),
+                      title: Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          format.format(scannedCards[index].timestamp),
+                          style: const TextStyle(fontSize: 12.0),
+                        ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              scannedCards[index].macAddress ?? 'N/A',
+                              style: const TextStyle(
+                                  fontSize: 12.0, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              scannedCards[index].comment,
+                              style: const TextStyle(fontSize: 14.0),
+                            ),
+                          ),
+                        ],
+                      ),
+                      onTap: () {
+                        _showEditDialog(context, scannedCards[index]);
+                      },
+                    ),
+                  );
+                },
+              ),
             ),
+            if (_bannerAd != null && _isBannerAdLoaded)
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: SafeArea(
+                  child: SizedBox(
+                    width: _bannerAd.size.width.toDouble(),
+                    height: _bannerAd.size.height.toDouble(),
+                    child: AdWidget(ad: _bannerAd),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
+  void loadAd() {
+    _bannerAd = BannerAd(
+      adUnitId: adUnitId,
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        // Called when an ad is successfully received.
+        onAdLoaded: (ad) {
+          debugPrint('$ad loaded.');
+          setState(() {
+            _isBannerAdLoaded = true;
+          });
+        },
+        // Called when an ad request failed.
+        onAdFailedToLoad: (ad, error) {
+          debugPrint('BannerAd failed to load: $error');
+          // Dispose the ad here to free resources.
+          ad.dispose();
+        },
+      ),
+    )..load();
+    InterstitialAd.load(
+        adUnitId: videoUnitId,
+        request: const AdRequest(),
+        adLoadCallback: InterstitialAdLoadCallback(
+          // Called when an ad is successfully received.
+          onAdLoaded: (ad) {
+            debugPrint('$ad loaded.');
+            // Keep a reference to the ad so you can show it later.
+            _interstitialAd = ad;
+          },
+          // Called when an ad request failed.
+          onAdFailedToLoad: (LoadAdError error) {
+            debugPrint('InterstitialAd failed to load: $error');
+          },
+        ));
+  }
 
   void _openQRCodeScanner(BuildContext context) {
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
         return Container(
-          height: 400,
+          height: 800,
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
@@ -190,15 +253,20 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                   ElevatedButton(
                     style: settings.prefs.getBool('multiscan') ?? true
                         ? ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all<Color>(Theme.of(context).primaryColor),
-                      foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
+                      backgroundColor: MaterialStateProperty.all<Color>(
+                          Theme.of(context).primaryColor),
+                      foregroundColor:
+                      MaterialStateProperty.all<Color>(Colors.white),
                     )
                         : ButtonStyle(
-                        backgroundColor: MaterialStateProperty.all<Color>(Colors.white),
-                        foregroundColor: MaterialStateProperty.all<Color>(Theme.of(context).primaryColor)
-                    ),
+                        backgroundColor:
+                        MaterialStateProperty.all<Color>(Colors.white),
+                        foregroundColor:
+                        MaterialStateProperty.all<Color>(
+                            Theme.of(context).primaryColor)),
                     onPressed: () {
-                      settings.prefs.setBool('multiscan',!(settings.prefs.getBool('multiscan') as bool));
+                      settings.prefs.setBool('multiscan',
+                          !(settings.prefs.getBool('multiscan') as bool));
                     },
                     child: const Text('Multiscan'),
                   ),
@@ -233,10 +301,8 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
         return;
       }
       String qrCode = scanData.code as String;
-      //qrCode = qrCode.replaceAll("\n", ' ');
       String mac = macAddressRegex.firstMatch(qrCode)?.group(0) ?? 'N/A';
       if (!mac.contains(':') && mac != 'N/A') {
-        // add colons to mac address don't add colon in the end
         mac = mac.replaceAllMapped(RegExp(r".{2}"), (Match m) => "${m.group(0)}:");
         mac = mac.substring(0, mac.length - 1);
       }
@@ -247,33 +313,33 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
         macAddress: mac,
         quantity: await databaseHelper.getPreviousQuantity() + 1,
       );
-      // in multiscan check for dupes
-      if (isMultiscan && await databaseHelper.exist(newRecord)) {
+      if (await databaseHelper.exist(newRecord)) {
         audioPlayer.play(AssetSource('error.wav'));
         controller.pauseCamera();
-        Timer(const Duration(microseconds: 50),() => controller.resumeCamera());
+        Timer(const Duration(microseconds: 50),
+                () => controller.resumeCamera());
         return;
       }
-      //DEBUG    print("Current qrdata: ${newRecord.qrData} | macAddress: ${newRecord.macAddress} | quantity: ${newRecord.quantity} | Regex Result ${macAddressRegex.firstMatch(qrCode.replaceAll('\n', ' '))?.group(0)}");
       await databaseHelper.insertRecord(newRecord);
       audioPlayer.setVolume(0.5);
       audioPlayer.play(AssetSource('beep.mp3'));
       _loadScannedCards();
-      if (!isMultiscan)
-      {
+      if (!isMultiscan) {
         controller.dispose();
         Navigator.pop(context);
-      }
-      else{
+      } else {
         this.controller.pauseCamera();
-        Timer(const Duration(seconds: 2),() => this.controller.resumeCamera());
+        Timer(const Duration(seconds: 2),
+                () => this.controller.resumeCamera());
       }
     });
   }
 
   void _showEditDialog(BuildContext context, Record record) async {
-    final TextEditingController qrDataController = TextEditingController(text: record.qrData);
-    final TextEditingController commentController = TextEditingController(text: record.comment);
+    final TextEditingController qrDataController =
+    TextEditingController(text: record.qrData);
+    final TextEditingController commentController =
+    TextEditingController(text: record.comment);
 
     showDialog(
       context: context,
@@ -291,10 +357,10 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                 ),
               ),
               TextField(
-                  controller: commentController,
-                  decoration: const InputDecoration(
-                    hintText: 'Comment',
-                  )
+                controller: commentController,
+                decoration: const InputDecoration(
+                  hintText: 'Comment',
+                ),
               ),
             ],
           ),
@@ -314,10 +380,11 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
             ),
             TextButton(
               onPressed: () async {
-                // Update the record in the database
                 record.qrData = qrDataController.text;
                 record.comment = commentController.text;
-                record.macAddress = macAddressRegex.firstMatch(qrDataController.text)?.group(0) ?? 'N/A';
+                record.macAddress =
+                    macAddressRegex.firstMatch(qrDataController.text)?.group(0) ??
+                        'N/A';
                 await databaseHelper.updateRecord(record);
 
                 setState(() {});
@@ -360,7 +427,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
             ),
             TextButton(
               onPressed: () async {
-                Navigator.pop(context); // Close the dialog
+                Navigator.pop(context);
                 await _clearAndShowBottomSheet(context);
               },
               child: const Text('Clear'),
@@ -393,15 +460,11 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                   fillColor: Theme.of(context).primaryColor,
                   ringColor: Colors.white,
                   autoStart: true,
-                  onComplete: () =>{
-                    Navigator.pop(context),
-
-                  },
+                  onComplete: () => {Navigator.pop(context)},
                 ),
                 const SizedBox(height: 10),
                 ElevatedButton(
-                    onPressed: backupDB,
-                    child: const Text('Cancel'))
+                    onPressed: backupDB, child: const Text('Cancel'))
               ],
             ),
           ),
@@ -409,7 +472,8 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       },
     );
   }
-  void backupDB() async{
+
+  void backupDB() async {
     databaseHelper.writeLines(backupDatabase);
     Navigator.pop(context);
     _loadScannedCards();
@@ -420,31 +484,26 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       Permission.manageExternalStorage.request();
       return;
     }
-    // Create Excel workbook and sheet
     final excel = Excel.createExcel();
     final sheet = excel['Sheet1'];
-
-    // Add headers
-    sheet.appendRow(['QR Data', 'Comment', 'Timestamp', 'Room Number',"Mac Address"]);
-
-    // Add data rows
+    sheet.appendRow(['QR Data', 'Comment', 'Timestamp', 'Identifier', "Mac Address"]);
     for (final record in scannedCards) {
-      sheet.appendRow([record.qrData, record.comment, record.timestamp.toString(), record.quantity,record.macAddress]);
+      sheet.appendRow([
+        record.qrData,
+        record.comment,
+        record.timestamp.toString(),
+        record.quantity,
+        record.macAddress
+      ]);
     }
-
-    // Get the downloads directory path
     final downloadsDirectory = await getDownloadPath();
     if (downloadsDirectory != null) {
-      // Save the Excel file
-      final filePath = '$downloadsDirectory/scanned_cards ${DateFormat.d().add_M().add_y().format(DateTime.now())}.xlsx';
+      final filePath =
+          '$downloadsDirectory/scanned_cards ${DateFormat.yMMMEd().format(DateTime.now())}.xlsx';
       final file = File(filePath);
-
       try {
-        // Delete the file if it existss
         await file.create(recursive: true);
         await file.writeAsBytes(excel.encode() as List<int>);
-        // O`pen the dialog with Share and Save options
-
         showDialog(
           context: context,
           builder: (BuildContext context) {
@@ -454,17 +513,17 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
               actions: [
                 TextButton(
                   onPressed: () {
-                    // Share the Excel file
+                    _interstitialAd?.show();
                     _shareFile(filePath);
-                    Navigator.of(context).pop(); // Close the dialog
+                    Navigator.of(context).pop();
                   },
                   child: const Text('Share'),
                 ),
                 TextButton(
                   onPressed: () {
-                    // Save the Excel file
+                    _interstitialAd?.show();
                     _saveFile(filePath);
-                    Navigator.of(context).pop(); // Close the dialog
+                    Navigator.of(context).pop();
                   },
                   child: const Text('Save'),
                 ),
@@ -481,6 +540,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Unable to access the Downloads directory')),
       );
+
     }
   }
 
@@ -515,6 +575,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       );
     }
   }
+
   void _openNumberModal(BuildContext context, Record record) {
     int selectedQuantity = record.quantity;
 
@@ -527,7 +588,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                //const SizedBox(height: 16.0),
                 SizedBox(
                   width: 200.0,
                   child: TextField(
@@ -544,17 +604,14 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                     controller: TextEditingController(text: record.quantity.toString()),
                   ),
                 ),
-                const SizedBox(height: 16.0),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).primaryColor,
                   ),
                   onPressed: () async {
-                    // Update the quantity in the record
                     setState(() {
                       record.quantity = selectedQuantity;
                     });
-
                     await databaseHelper.updateRecord(record);
                     Navigator.of(context).pop(selectedQuantity);
                   },
@@ -573,7 +630,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       },
     ).then((value) {
       if (value != null) {
-        // Update the value in the circle
         setState(() {
           record.quantity = value;
         });
@@ -587,14 +643,12 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       directory = await getApplicationDocumentsDirectory();
     } else {
       directory = Directory('/storage/emulated/0/Download');
-      // Put file in global download folder, if for an unknown reason it didn't exist, we fallback
-      // ignore: avoid_slow_async_io
       if (!await directory.exists()) directory = await getExternalStorageDirectory();
     }
     return directory?.path;
   }
 
-  void _showNewDialog(BuildContext context) async{
+  void _showNewDialog(BuildContext context) async {
     final TextEditingController qrDataController = TextEditingController();
     final TextEditingController commentController = TextEditingController();
 
@@ -614,10 +668,10 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                 ),
               ),
               TextField(
-                  controller: commentController,
-                  decoration: const InputDecoration(
-                    hintText: 'Comment',
-                  )
+                controller: commentController,
+                decoration: const InputDecoration(
+                  hintText: 'Comment',
+                ),
               ),
             ],
           ),
@@ -630,11 +684,12 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
             ),
             TextButton(
               onPressed: () async {
-                // Update the record in the database
                 Record record = Record(
-                  qrData : qrDataController.text,
-                  comment : commentController.text,
-                  macAddress : macAddressRegex.firstMatch(qrDataController.text)?.group(0) ?? 'N/A',
+                  qrData: qrDataController.text,
+                  comment: commentController.text,
+                  macAddress:
+                  macAddressRegex.firstMatch(qrDataController.text)?.group(0) ??
+                      'N/A',
                   timestamp: DateTime.now(),
                   quantity: await databaseHelper.getPreviousQuantity() + 1,
                 );

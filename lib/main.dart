@@ -1,18 +1,21 @@
 import 'package:bottom_bar_matu/bottom_bar_matu.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:mainflutter/utilities/settings.dart';
 import 'package:mainflutter/views/SettingsPage.dart';
-
 import 'views/mainmenu.dart';
 import 'views/AboutPage.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  MobileAds.instance.initialize();
   runApp(const MyApp());
+  Settings();
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
-
-  // This widget is the root of your application.
+    // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -45,19 +48,19 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      bottomNavigationBar: BottomBarBubble(
+      bottomNavigationBar: BottomBarLabelSlide(
         items: [
           BottomBarItem(
             iconData: Icons.qr_code_scanner,
-            // label: 'Home',
+            label: 'Scanner',
           ),
           BottomBarItem(
             iconData: Icons.settings,
-            // label: 'Chat',
+            label: 'Settings',
           ),
           BottomBarItem(
             iconData: Icons.info,
-            // label: 'Notification',
+            label: 'About',
           ),
         ],
         onSelect: (index) {
@@ -69,6 +72,7 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       ),
       body: PageView(
+        physics: const NeverScrollableScrollPhysics(), // No sliding
         controller: controller,
         children: const <Widget>[
           QRCodeScannerPage(),
