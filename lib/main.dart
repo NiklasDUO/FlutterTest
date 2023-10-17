@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:mainflutter/utilities/settings.dart';
 import 'package:mainflutter/views/SettingsPage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'views/mainmenu.dart';
 import 'views/AboutPage.dart';
 
@@ -50,19 +48,19 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      bottomNavigationBar: BottomBarBubble(
+      bottomNavigationBar: BottomBarLabelSlide(
         items: [
           BottomBarItem(
             iconData: Icons.qr_code_scanner,
-            // label: 'Home',
+            label: 'Scanner',
           ),
           BottomBarItem(
             iconData: Icons.settings,
-            // label: 'Chat',
+            label: 'Settings',
           ),
           BottomBarItem(
             iconData: Icons.info,
-            // label: 'Notification',
+            label: 'About',
           ),
         ],
         onSelect: (index) {
@@ -74,6 +72,7 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       ),
       body: PageView(
+        physics: const NeverScrollableScrollPhysics(), // No sliding
         controller: controller,
         children: const <Widget>[
           QRCodeScannerPage(),

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../utilities/DatabaseHelper.dart';
 import '../classes/record.dart';
 import 'package:share/share.dart';
@@ -26,6 +27,7 @@ class QRCodeScannerPage extends StatefulWidget {
 
 class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+  late SharedPreferences prefs;
   late QRViewController controller;
 
   //AD
@@ -66,6 +68,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
 
   Future<void> _loadScannedCards() async {
     final List<Record> records = await databaseHelper.getRecords();
+    prefs = await SharedPreferences.getInstance();
     setState(() {
       scannedCards = records.reversed.toList();
     });
@@ -234,7 +237,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       context: context,
       builder: (BuildContext context) {
         return Container(
-          height: 400,
+          height: 800,
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
@@ -310,7 +313,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
         macAddress: mac,
         quantity: await databaseHelper.getPreviousQuantity() + 1,
       );
-      if (isMultiscan && await databaseHelper.exist(newRecord)) {
+      if (await databaseHelper.exist(newRecord)) {
         audioPlayer.play(AssetSource('error.wav'));
         controller.pauseCamera();
         Timer(const Duration(microseconds: 50),
@@ -483,7 +486,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
     }
     final excel = Excel.createExcel();
     final sheet = excel['Sheet1'];
-    sheet.appendRow(['QR Data', 'Comment', 'Timestamp', 'Room Number', "Mac Address"]);
+    sheet.appendRow(['QR Data', 'Comment', 'Timestamp', 'Identifier', "Mac Address"]);
     for (final record in scannedCards) {
       sheet.appendRow([
         record.qrData,
@@ -496,7 +499,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
     final downloadsDirectory = await getDownloadPath();
     if (downloadsDirectory != null) {
       final filePath =
-          '$downloadsDirectory/scanned_cards ${DateFormat.d().add_M().add_y().format(DateTime.now())}.xlsx';
+          '$downloadsDirectory/scanned_cards ${DateFormat.yMMMEd().format(DateTime.now())}.xlsx';
       final file = File(filePath);
       try {
         await file.create(recursive: true);
@@ -537,6 +540,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Unable to access the Downloads directory')),
       );
+
     }
   }
 
