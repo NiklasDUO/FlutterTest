@@ -240,6 +240,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
 
   void _openQRCodeScanner(BuildContext context) {
     bool zoomed = prefs.getBool('zoom') as bool;
+    String multiText = "Multi";
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
@@ -249,15 +250,8 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
           child: Column(
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      cameraController.dispose();
-                    },
-                    child: const Text('Close'),
-                  ),
-                  const SizedBox(width: 20),
                   ValueListenableBuilder(valueListenable: notifiedSettings.multiscan,
                     builder: (context,value,child) {
                       return ElevatedButton(
@@ -280,12 +274,14 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                                     .primaryColor)),
                         onPressed: () {
                           notifiedSettings.multiscan.value = !notifiedSettings.multiscan.value;
+                          if (notifiedSettings.multiscan.value) { multiText = "Single"; }
+                          else { multiText = "Multi"; }
                         },
-                        child: const Text('Multiscan'),
+                        child: Text(multiText),
                       );
                     }
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 10),
                   ValueListenableBuilder(valueListenable: cameraController.torchState,
                     builder:  (context,value,child) {
                     bool boolean = false;
@@ -317,6 +313,81 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                         child: const Icon(Icons.flashlight_on),
                       );
                     }
+                  ),
+                  const SizedBox(width: 10),
+                  ValueListenableBuilder(valueListenable: notifiedSettings.soundEnabled,
+                      builder:  (context,value,child) {
+                        return ElevatedButton(
+                          style: notifiedSettings.soundEnabled.value
+                              ? ButtonStyle(
+                            backgroundColor: MaterialStateProperty.all<Color>(
+                                Theme
+                                    .of(context)
+                                    .primaryColor),
+                            foregroundColor:
+                            MaterialStateProperty.all<Color>(Colors.white),
+                          )
+                              : ButtonStyle(
+                              backgroundColor:
+                              MaterialStateProperty.all<Color>(Colors.white),
+                              foregroundColor:
+                              MaterialStateProperty.all<Color>(
+                                  Theme
+                                      .of(context)
+                                      .primaryColor)),
+                          onPressed: () {
+                            notifiedSettings.soundEnabled.value = !notifiedSettings.soundEnabled.value;
+                          },
+                          child: const Icon(Icons.music_note),
+                        );
+                      }
+                  ),
+                  const SizedBox(width: 10),
+                  ValueListenableBuilder(valueListenable: notifiedSettings.vibrateEnabled,
+                      builder:  (context,value,child) {
+                        return SizedBox(
+                          child: ElevatedButton(
+                            style: notifiedSettings.vibrateEnabled.value
+                                ? ButtonStyle(
+                              backgroundColor: MaterialStateProperty.all<Color>(
+                                  Theme
+                                      .of(context)
+                                      .primaryColor),
+                              foregroundColor:
+                              MaterialStateProperty.all<Color>(Colors.white),
+                            )
+                                : ButtonStyle(
+                                backgroundColor:
+                                MaterialStateProperty.all<Color>(Colors.white),
+                                foregroundColor:
+                                MaterialStateProperty.all<Color>(
+                                    Theme
+                                        .of(context)
+                                        .primaryColor)),
+                            onPressed: () {
+                              notifiedSettings.vibrateEnabled.value = !notifiedSettings.vibrateEnabled.value;
+                            },
+                            child: const Icon(Icons.vibration),
+                          ),
+                        );
+                      }
+                  ),
+                  const SizedBox(width: 5),
+                  MaterialButton(
+                    height: 35,
+                    minWidth: 30,
+                    color: Theme.of(context).primaryColor,
+                    onPressed: () {
+                      Navigator.pop(context);
+                      cameraController.dispose();
+                    },
+                    child: const Text(
+                        'X',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -721,7 +792,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   void _showNewDialog(BuildContext context) async {
     final TextEditingController qrDataController = TextEditingController();
     final TextEditingController commentController = TextEditingController();
-    print(prefs.getBool('SoundEnabled'));
     showDialog(
       context: context,
       builder: (BuildContext context) {

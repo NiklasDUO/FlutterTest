@@ -48,30 +48,31 @@ class _SettingsPageState extends State<SettingsPage> {
               Row(
                 children: [
                   const Text("Sound"),
-                  Switch(
-                    value: prefs.getBool("SoundEnabled") as bool,
-                    onChanged: (value) {
-                      setState(() {
-                        prefs.setBool("SoundEnabled", value);
-                      });
-                      prefs.setBool("SoundEnabled", value);
-                      print(prefs.getBool("SoundEnabled"));
-                    },
+                  ValueListenableBuilder(valueListenable: notifiedSettings.soundEnabled,
+                      builder: (context, value, child) {
+                        return Switch(
+                          value: notifiedSettings.soundEnabled.value,
+                          onChanged: (value) {
+                            notifiedSettings.soundEnabled.value = value;
+                          },
+                        );
+                      }
                   ),
                 ],
               ),
               Row(
                 children: [
                   const Text("Vibro"),
-                  Switch(
-                    value: prefs.getBool("VibroEnabled") as bool,
-                    onChanged: (value) {
-                      setState(() {
-                        prefs.setBool("VibroEnabled", value);
-                      });
-                    },
+                  ValueListenableBuilder(valueListenable: notifiedSettings.vibrateEnabled,
+                      builder: (context, value, child) {
+                        return Switch(
+                          value: notifiedSettings.vibrateEnabled.value,
+                          onChanged: (value) {
+                            notifiedSettings.vibrateEnabled.value = value;
+                          },
+                        );
+                      }
                   ),
-
                 ],
               ),
               Row(
