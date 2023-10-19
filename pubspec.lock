@@ -352,6 +352,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.4"
+  mobile_scanner:
+    dependency: "direct main"
+    description:
+      name: mobile_scanner
+      sha256: "2fbc3914fe625e196c64ea8ffc4084cd36781d2be276d4d5923b11af3b5d44ff"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.4.1"
+  notified_preferences:
+    dependency: "direct main"
+    description:
+      name: notified_preferences
+      sha256: "07bee8d7ce068fc92f51fa8d8745ab1dd9eb5371df5a80634c4c647b0fea6a50"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.0"
   open_file:
     dependency: "direct main"
     description:
@@ -496,11 +512,11 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.2.4"
-  qr_code_scanner:
-    dependency: "direct main"
+  runtime_type:
+    dependency: transitive
     description:
-      name: qr_code_scanner
-      sha256: f23b68d893505a424f0bd2e324ebea71ed88465d572d26bb8d2e78a4749591fd
+      name: runtime_type
+      sha256: "3dcaf80cc98447a7b7b04e1f125fff805af796e7c5fc9d8d956933573d3a7eb1"
       url: "https://pub.dev"
     source: hosted
     version: "1.0.1"

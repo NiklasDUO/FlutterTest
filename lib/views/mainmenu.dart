@@ -5,9 +5,11 @@ import 'dart:io';
 import 'package:circular_countdown_timer/circular_countdown_timer.dart';
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:qr_code_scanner/qr_code_scanner.dart';
+import '../views/MobileScannerOverlay.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utilities/DatabaseHelper.dart';
 import '../classes/record.dart';
@@ -15,9 +17,8 @@ import 'package:share/share.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
-import '../utilities/settings.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-
+import '../utilities/notifiedsettings.dart';
 class QRCodeScannerPage extends StatefulWidget {
   const QRCodeScannerPage({Key? key}) : super(key: key);
 
@@ -26,17 +27,19 @@ class QRCodeScannerPage extends StatefulWidget {
 }
 
 class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
+
+
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+  //MIGRATION
+  MobileScannerController cameraController = MobileScannerController();
   late SharedPreferences prefs;
-  late QRViewController controller;
+  late NotifiedSettings notifiedSettings;
 
   //AD
   late BannerAd _bannerAd;
   InterstitialAd? _interstitialAd;
   bool _isBannerAdLoaded = false;
 
-
-  final Settings settings = Settings();
   final AudioPlayer audioPlayer = AudioPlayer();
   final DatabaseHelper databaseHelper = DatabaseHelper.instance;
   List<Record> scannedCards = [];
@@ -54,7 +57,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
 
   @override
   void dispose() {
-    controller.dispose();
+    cameraController.dispose();
     _bannerAd.dispose();
     super.dispose();
   }
@@ -69,6 +72,8 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   Future<void> _loadScannedCards() async {
     final List<Record> records = await databaseHelper.getRecords();
     prefs = await SharedPreferences.getInstance();
+    notifiedSettings = NotifiedSettings();
+    notifiedSettings.initialize();
     setState(() {
       scannedCards = records.reversed.toList();
     });
@@ -91,6 +96,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
             color: Colors.white,
             onPressed: () {
               _openQRCodeScanner(context);
+              cameraController = MobileScannerController();
             },
           ),
           IconButton(
@@ -233,6 +239,8 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   }
 
   void _openQRCodeScanner(BuildContext context) {
+    bool zoomed = prefs.getBool('zoom') as bool;
+    print('LightState: ${cameraController.torchEnabled}');
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
@@ -246,43 +254,148 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                   ElevatedButton(
                     onPressed: () {
                       Navigator.pop(context);
+                      cameraController.dispose();
                     },
                     child: const Text('Close'),
                   ),
                   const SizedBox(width: 20),
-                  ElevatedButton(
-                    style: settings.prefs.getBool('multiscan') ?? true
-                        ? ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all<Color>(
-                          Theme.of(context).primaryColor),
-                      foregroundColor:
-                      MaterialStateProperty.all<Color>(Colors.white),
-                    )
-                        : ButtonStyle(
-                        backgroundColor:
-                        MaterialStateProperty.all<Color>(Colors.white),
-                        foregroundColor:
-                        MaterialStateProperty.all<Color>(
-                            Theme.of(context).primaryColor)),
-                    onPressed: () {
-                      settings.prefs.setBool('multiscan',
-                          !(settings.prefs.getBool('multiscan') as bool));
-                    },
-                    child: const Text('Multiscan'),
+                  ValueListenableBuilder(valueListenable: notifiedSettings.multiscan,
+                    builder: (context,value,child) {
+                      return ElevatedButton(
+                        style: notifiedSettings.multiscan.value ?? true
+                            ? ButtonStyle(
+                          backgroundColor: MaterialStateProperty.all<Color>(
+                              Theme
+                                  .of(context)
+                                  .primaryColor),
+                          foregroundColor:
+                          MaterialStateProperty.all<Color>(Colors.white),
+                        )
+                            : ButtonStyle(
+                            backgroundColor:
+                            MaterialStateProperty.all<Color>(Colors.white),
+                            foregroundColor:
+                            MaterialStateProperty.all<Color>(
+                                Theme
+                                    .of(context)
+                                    .primaryColor)),
+                        onPressed: () {
+                          notifiedSettings.multiscan.value = !notifiedSettings.multiscan.value;
+                        },
+                        child: const Text('Multiscan'),
+                      );
+                    }
+                  ),
+                  const SizedBox(width: 20),
+                  ValueListenableBuilder(valueListenable: cameraController.torchState,
+                    builder:  (context,value,child) {
+                    bool boolean = false;
+                    if (cameraController.torchState.value == TorchState.on) {
+                      boolean = true;
+                    }
+                    print(cameraController.torchState.value);
+                     return ElevatedButton(
+                        style: boolean
+                            ? ButtonStyle(
+                          backgroundColor: MaterialStateProperty.all<Color>(
+                              Theme
+                                  .of(context)
+                                  .primaryColor),
+                          foregroundColor:
+                          MaterialStateProperty.all<Color>(Colors.white),
+                        )
+                            : ButtonStyle(
+                            backgroundColor:
+                            MaterialStateProperty.all<Color>(Colors.white),
+                            foregroundColor:
+                            MaterialStateProperty.all<Color>(
+                                Theme
+                                    .of(context)
+                                    .primaryColor)),
+                        onPressed: () {
+                          cameraController.toggleTorch();
+                        },
+                        child: const Icon(Icons.flashlight_on),
+                      );
+                    }
                   ),
                 ],
               ),
               const SizedBox(height: 10.0),
               Expanded(
-                child: QRView(
-                  key: qrKey,
-                  onQRViewCreated: _onQRViewCreated,
-                  overlay: QrScannerOverlayShape(
-                    borderRadius: 10,
-                    borderColor: Theme.of(context).primaryColor,
-                    borderLength: 30,
-                    borderWidth: 10,
-                    cutOutSize: 250,
+                child: GestureDetector(
+                  onDoubleTap: () {
+                    zoomed = !zoomed;
+                    prefs.setBool('zoom', zoomed);
+                    if (zoomed) {
+                      cameraController.setZoomScale(0.5);
+                    }
+                    else {
+                      cameraController.setZoomScale(0);
+                    }
+                  },
+                  child: MobileScanner(
+                    controller: cameraController,
+                    // create overlay with container widget with four corner cutout
+                    overlay: const QRScannerOverlay(
+                      overlayColour: Colors.transparent,
+                    ),
+                    onDetect: (detect) {
+                      List<Barcode> barcodes = detect.barcodes;
+                      String rawData = barcodes[0].rawValue ?? "None";
+                      String mac = macAddressRegex.firstMatch(rawData)?.group(0) ?? 'N/A';
+                      if (!mac.contains(':') && mac != 'N/A') {
+                        mac = mac.replaceAllMapped(RegExp(r".{2}"), (Match m) => "${m.group(0)}:");
+                        mac = mac.substring(0, mac.length - 1);
+                      }
+                      Record record = Record(
+                        qrData: rawData,
+                        comment: '',
+                        macAddress: mac,
+                        timestamp: DateTime.now(),
+                        quantity: prefs.getInt('quantity') ?? 1,
+                      );
+                      // check if record already exists
+                        databaseHelper.exist(record).then((value) async {
+                        if (!value || !notifiedSettings.dupesCheck.value) {
+                          await databaseHelper.insertRecord(record);
+                          if (prefs.getBool(
+                              'SoundEnabled') as bool) {
+                            audioPlayer.play(
+                              AssetSource('beep.mp3'));
+                          }
+                          if (prefs.getBool(
+                              'VibroEnabled') as bool) {
+                            HapticFeedback
+                              .mediumImpact();
+                          }
+                          if (notifiedSettings.multiscan.value == true) {
+                            cameraController.stop();
+                            Timer timer = Timer(
+                                const Duration(seconds: 1), () {
+                              cameraController.start();
+                            });
+                          }
+                          else {
+                            _loadScannedCards();
+                            Navigator.pop(context);
+                            cameraController.dispose();
+                          }
+                        }
+                        else {
+                          if (prefs.getBool(
+                              'SoundEnabled') as bool) {
+                            audioPlayer.play(
+                              AssetSource('error.wav'));
+                          }
+                          cameraController.stop();
+                          Timer timer = Timer(const Duration(seconds: 1), () {
+                            cameraController.start();
+                          });
+                        }
+                      });
+                      _loadScannedCards();
+                    },
                   ),
                 ),
               ),
@@ -291,48 +404,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
         );
       },
     );
-  }
-
-  void _onQRViewCreated(QRViewController controller) {
-    this.controller = controller;
-    final isMultiscan = settings.prefs.getBool('multiscan') as bool;
-    controller.scannedDataStream.listen((scanData) async {
-      if (scanData.code == null) {
-        return;
-      }
-      String qrCode = scanData.code as String;
-      String mac = macAddressRegex.firstMatch(qrCode)?.group(0) ?? 'N/A';
-      if (!mac.contains(':') && mac != 'N/A') {
-        mac = mac.replaceAllMapped(RegExp(r".{2}"), (Match m) => "${m.group(0)}:");
-        mac = mac.substring(0, mac.length - 1);
-      }
-      Record newRecord = Record(
-        qrData: qrCode,
-        comment: ' ',
-        timestamp: DateTime.now(),
-        macAddress: mac,
-        quantity: await databaseHelper.getPreviousQuantity() + 1,
-      );
-      if (await databaseHelper.exist(newRecord)) {
-        audioPlayer.play(AssetSource('error.wav'));
-        controller.pauseCamera();
-        Timer(const Duration(microseconds: 50),
-                () => controller.resumeCamera());
-        return;
-      }
-      await databaseHelper.insertRecord(newRecord);
-      audioPlayer.setVolume(0.5);
-      audioPlayer.play(AssetSource('beep.mp3'));
-      _loadScannedCards();
-      if (!isMultiscan) {
-        controller.dispose();
-        Navigator.pop(context);
-      } else {
-        this.controller.pauseCamera();
-        Timer(const Duration(seconds: 2),
-                () => this.controller.resumeCamera());
-      }
-    });
   }
 
   void _showEditDialog(BuildContext context, Record record) async {
@@ -651,7 +722,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   void _showNewDialog(BuildContext context) async {
     final TextEditingController qrDataController = TextEditingController();
     final TextEditingController commentController = TextEditingController();
-
+    print(prefs.getBool('SoundEnabled'));
     showDialog(
       context: context,
       builder: (BuildContext context) {

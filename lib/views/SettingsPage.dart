@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mainflutter/utilities/settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utilities/notifiedsettings.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({Key? key}) : super(key: key);
@@ -11,16 +12,20 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   late SharedPreferences prefs;
-  final Settings settings = Settings();
+  late NotifiedSettings notifiedSettings;
 
   @override
   void initState() {
     super.initState();
-    initSharedPreferences();
   }
+   _SettingsPageState() {
+    initSharedPreferences();
+   }
 
   Future<void> initSharedPreferences() async {
     prefs = await SharedPreferences.getInstance();
+    notifiedSettings = NotifiedSettings();
+    notifiedSettings.initialize();
     setState(() {}); // Trigger a rebuild after initializing prefs
   }
 
@@ -28,7 +33,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     if (prefs == null) {
       // Show a loading indicator or handle the case when prefs is not initialized yet
-      return CircularProgressIndicator();
+      return const CircularProgressIndicator();
     }
 
     return Scaffold(
@@ -36,24 +41,57 @@ class _SettingsPageState extends State<SettingsPage> {
         title: const Text('Settings'),
         centerTitle: true,
       ),
-      body: Center(
-        child: Column(
-          children: [
-            Row(
-              children: [
-                const Text("Sound"),
-                Switch(
-                  value: prefs.getBool("Sound") ?? false,
-                  onChanged: (value) {
-                    setState(() {
-                      prefs.setBool("Sound", value);
-                    });
-                  },
-                ),
-              ],
-            ),
+      body: Container(
+        margin: const EdgeInsets.all(10),
+        child: Center(
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  const Text("Sound"),
+                  Switch(
+                    value: prefs.getBool("SoundEnabled") as bool,
+                    onChanged: (value) {
+                      setState(() {
+                        prefs.setBool("SoundEnabled", value);
+                      });
+                      prefs.setBool("SoundEnabled", value);
+                      print(prefs.getBool("SoundEnabled"));
+                    },
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  const Text("Vibro"),
+                  Switch(
+                    value: prefs.getBool("VibroEnabled") as bool,
+                    onChanged: (value) {
+                      setState(() {
+                        prefs.setBool("VibroEnabled", value);
+                      });
+                    },
+                  ),
 
-          ],
+                ],
+              ),
+              Row(
+                children: [
+                  const Text("Dupes Check"),
+                  ValueListenableBuilder(valueListenable: notifiedSettings.dupesCheck,
+                    builder: (context, value, child) {
+                      return Switch(
+                        value: notifiedSettings.dupesCheck.value,
+                        onChanged: (value) {
+                          notifiedSettings.dupesCheck.value = value;
+                        },
+                      );
+                    }
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -72,4 +110,4 @@ class _SettingsPageState extends State<SettingsPage> {
   * 9. Зміна розміру шрифтів
   * 10. Параметри пошуку Емайл/мак/посилання/
   * 11. Зміна сортування індентифікатор  min/max max/min
-   */
+*/
