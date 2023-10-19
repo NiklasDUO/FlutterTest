@@ -240,7 +240,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
 
   void _openQRCodeScanner(BuildContext context) {
     bool zoomed = prefs.getBool('zoom') as bool;
-    print('LightState: ${cameraController.torchEnabled}');
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
@@ -340,7 +339,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                     overlay: const QRScannerOverlay(
                       overlayColour: Colors.transparent,
                     ),
-                    onDetect: (detect) {
+                    onDetect: (detect) async{
                       List<Barcode> barcodes = detect.barcodes;
                       String rawData = barcodes[0].rawValue ?? "None";
                       String mac = macAddressRegex.firstMatch(rawData)?.group(0) ?? 'N/A';
@@ -353,7 +352,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                         comment: '',
                         macAddress: mac,
                         timestamp: DateTime.now(),
-                        quantity: prefs.getInt('quantity') ?? 1,
+                        quantity: (await databaseHelper.getPreviousQuantity()) +1,
                       );
                       // check if record already exists
                         databaseHelper.exist(record).then((value) async {
