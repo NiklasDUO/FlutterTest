@@ -274,7 +274,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                                     .primaryColor)),
                         onPressed: () {
                           notifiedSettings.multiscan.value = !notifiedSettings.multiscan.value;
-                          if (notifiedSettings.multiscan.value) { multiText = "Single"; }
+                          if (!notifiedSettings.multiscan.value) { multiText = "Single"; }
                           else { multiText = "Multi"; }
                         },
                         child: Text(multiText),
@@ -373,22 +373,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                       }
                   ),
                   const SizedBox(width: 5),
-                  MaterialButton(
-                    height: 35,
-                    minWidth: 30,
-                    color: Theme.of(context).primaryColor,
-                    onPressed: () {
-                      Navigator.pop(context);
-                      cameraController.dispose();
-                    },
-                    child: const Text(
-                        'X',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: 10.0),
