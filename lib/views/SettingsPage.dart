@@ -13,7 +13,6 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   late SharedPreferences prefs;
   late NotifiedSettings notifiedSettings;
-  final List<String> dropdownItems = ['MAC address','Email','Phone number','URL'];
   @override
   void initState() {
     super.initState();
