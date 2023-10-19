@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mainflutter/utilities/settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utilities/notifiedsettings.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({Key? key}) : super(key: key);
@@ -11,6 +12,7 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   late SharedPreferences prefs;
+  late NotifiedSettings notifiedSettings;
 
   @override
   void initState() {
@@ -22,6 +24,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> initSharedPreferences() async {
     prefs = await SharedPreferences.getInstance();
+    notifiedSettings = NotifiedSettings();
+    notifiedSettings.initialize();
     setState(() {}); // Trigger a rebuild after initializing prefs
   }
 
@@ -73,16 +77,17 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               Row(
                 children: [
-                  const Text("Light"),
-                  Switch(
-                    value: prefs.getBool("LightEnabled") as bool,
-                    onChanged: (value) {
-                      setState(() {
-                        prefs.setBool("LightEnabled", value);
-                      });
-                    },
+                  const Text("Dupes Check"),
+                  ValueListenableBuilder(valueListenable: notifiedSettings.dupesCheck,
+                    builder: (context, value, child) {
+                      return Switch(
+                        value: notifiedSettings.dupesCheck.value,
+                        onChanged: (value) {
+                          notifiedSettings.dupesCheck.value = value;
+                        },
+                      );
+                    }
                   ),
-
                 ],
               ),
             ],

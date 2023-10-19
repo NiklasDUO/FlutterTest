@@ -360,6 +360,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.4.1"
+  notified_preferences:
+    dependency: "direct main"
+    description:
+      name: notified_preferences
+      sha256: "07bee8d7ce068fc92f51fa8d8745ab1dd9eb5371df5a80634c4c647b0fea6a50"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.0"
   open_file:
     dependency: "direct main"
     description:
@@ -504,6 +512,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.2.4"
+  runtime_type:
+    dependency: transitive
+    description:
+      name: runtime_type
+      sha256: "3dcaf80cc98447a7b7b04e1f125fff805af796e7c5fc9d8d956933573d3a7eb1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
   share:
     dependency: "direct main"
     description:

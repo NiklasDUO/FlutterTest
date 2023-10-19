@@ -1,6 +1,7 @@
 import 'package:bottom_bar_matu/bottom_bar_matu.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:mainflutter/utilities/notifiedsettings.dart';
 import 'package:mainflutter/utilities/settings.dart';
 import 'package:mainflutter/views/SettingsPage.dart';
 import 'views/mainmenu.dart';
@@ -10,8 +11,9 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   MobileAds.instance.initialize();
   Settings settings = Settings();
+  NotifiedSettings notifiedSettings = NotifiedSettings();
+  notifiedSettings.initialize();
   runApp(const MyApp());
-  Settings();
 }
 
 class MyApp extends StatelessWidget {
@@ -49,7 +51,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      bottomNavigationBar: BottomBarLabelSlide(
+      bottomNavigationBar: BottomBarBubble(
         items: [
           BottomBarItem(
             iconData: Icons.qr_code_scanner,

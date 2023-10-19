@@ -44,6 +44,7 @@ dependencies:
   google_mobile_ads:
   theme_provider:
   mobile_scanner:
+  notified_preferences:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

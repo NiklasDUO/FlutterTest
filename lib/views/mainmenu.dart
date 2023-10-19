@@ -18,7 +18,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-
+import '../utilities/notifiedsettings.dart';
 class QRCodeScannerPage extends StatefulWidget {
   const QRCodeScannerPage({Key? key}) : super(key: key);
 
@@ -33,6 +33,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   //MIGRATION
   MobileScannerController cameraController = MobileScannerController();
   late SharedPreferences prefs;
+  late NotifiedSettings notifiedSettings;
 
   //AD
   late BannerAd _bannerAd;
@@ -71,6 +72,8 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   Future<void> _loadScannedCards() async {
     final List<Record> records = await databaseHelper.getRecords();
     prefs = await SharedPreferences.getInstance();
+    notifiedSettings = NotifiedSettings();
+    notifiedSettings.initialize();
     setState(() {
       scannedCards = records.reversed.toList();
     });
@@ -256,46 +259,65 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                     child: const Text('Close'),
                   ),
                   const SizedBox(width: 20),
-                  ElevatedButton(
-                    style: prefs.getBool('multiscan') ?? true
-                        ? ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all<Color>(
-                          Theme.of(context).primaryColor),
-                      foregroundColor:
-                      MaterialStateProperty.all<Color>(Colors.white),
-                    )
-                        : ButtonStyle(
-                        backgroundColor:
-                        MaterialStateProperty.all<Color>(Colors.white),
-                        foregroundColor:
-                        MaterialStateProperty.all<Color>(
-                            Theme.of(context).primaryColor)),
-                    onPressed: () {
-                      prefs.setBool('multiscan',
-                          !(prefs.getBool('multiscan') as bool));
-                    },
-                    child: const Text('Multiscan'),
+                  ValueListenableBuilder(valueListenable: notifiedSettings.multiscan,
+                    builder: (context,value,child) {
+                      return ElevatedButton(
+                        style: notifiedSettings.multiscan.value ?? true
+                            ? ButtonStyle(
+                          backgroundColor: MaterialStateProperty.all<Color>(
+                              Theme
+                                  .of(context)
+                                  .primaryColor),
+                          foregroundColor:
+                          MaterialStateProperty.all<Color>(Colors.white),
+                        )
+                            : ButtonStyle(
+                            backgroundColor:
+                            MaterialStateProperty.all<Color>(Colors.white),
+                            foregroundColor:
+                            MaterialStateProperty.all<Color>(
+                                Theme
+                                    .of(context)
+                                    .primaryColor)),
+                        onPressed: () {
+                          notifiedSettings.multiscan.value = !notifiedSettings.multiscan.value;
+                        },
+                        child: const Text('Multiscan'),
+                      );
+                    }
                   ),
                   const SizedBox(width: 20),
-                  ElevatedButton(
-                    style: cameraController.torchEnabled
-                        ? ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all<Color>(
-                          Theme.of(context).primaryColor),
-                      foregroundColor:
-                      MaterialStateProperty.all<Color>(Colors.white),
-                    )
-                        : ButtonStyle(
-                        backgroundColor:
-                        MaterialStateProperty.all<Color>(Colors.white),
-                        foregroundColor:
-                        MaterialStateProperty.all<Color>(
-                            Theme.of(context).primaryColor)),
-                    onPressed: () {
-                      cameraController.toggleTorch();
-
-                    },
-                    child: const Icon(Icons.flashlight_on),
+                  ValueListenableBuilder(valueListenable: cameraController.torchState,
+                    builder:  (context,value,child) {
+                    bool boolean = false;
+                    if (cameraController.torchState.value == TorchState.on) {
+                      boolean = true;
+                    }
+                    print(cameraController.torchState.value);
+                     return ElevatedButton(
+                        style: boolean
+                            ? ButtonStyle(
+                          backgroundColor: MaterialStateProperty.all<Color>(
+                              Theme
+                                  .of(context)
+                                  .primaryColor),
+                          foregroundColor:
+                          MaterialStateProperty.all<Color>(Colors.white),
+                        )
+                            : ButtonStyle(
+                            backgroundColor:
+                            MaterialStateProperty.all<Color>(Colors.white),
+                            foregroundColor:
+                            MaterialStateProperty.all<Color>(
+                                Theme
+                                    .of(context)
+                                    .primaryColor)),
+                        onPressed: () {
+                          cameraController.toggleTorch();
+                        },
+                        child: const Icon(Icons.flashlight_on),
+                      );
+                    }
                   ),
                 ],
               ),
@@ -334,14 +356,23 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                         quantity: prefs.getInt('quantity') ?? 1,
                       );
                       // check if record already exists
-                      databaseHelper.exist(record).then((value) async {
-                        if (!value) {
+                        databaseHelper.exist(record).then((value) async {
+                        if (!value || !notifiedSettings.dupesCheck.value) {
                           await databaseHelper.insertRecord(record);
-                          if (prefs.getBool('SoundEnabled') as bool) audioPlayer.play(AssetSource('beep.mp3'));
-                          if (prefs.getBool('VibroEnabled') as bool) HapticFeedback.lightImpact();
-                            if (prefs.getBool('multiscan') == true) {
+                          if (prefs.getBool(
+                              'SoundEnabled') as bool) {
+                            audioPlayer.play(
+                              AssetSource('beep.mp3'));
+                          }
+                          if (prefs.getBool(
+                              'VibroEnabled') as bool) {
+                            HapticFeedback
+                              .mediumImpact();
+                          }
+                          if (notifiedSettings.multiscan.value == true) {
                             cameraController.stop();
-                            Timer timer = Timer(const Duration(seconds: 1), () {
+                            Timer timer = Timer(
+                                const Duration(seconds: 1), () {
                               cameraController.start();
                             });
                           }
@@ -352,7 +383,11 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                           }
                         }
                         else {
-                          if (prefs.getBool('SoundEnabled') as bool) audioPlayer.play(AssetSource('error.wav'));
+                          if (prefs.getBool(
+                              'SoundEnabled') as bool) {
+                            audioPlayer.play(
+                              AssetSource('error.wav'));
+                          }
                           cameraController.stop();
                           Timer timer = Timer(const Duration(seconds: 1), () {
                             cameraController.start();
