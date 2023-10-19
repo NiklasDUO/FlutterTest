@@ -28,7 +28,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     if (prefs == null) {
       // Show a loading indicator or handle the case when prefs is not initialized yet
-      return CircularProgressIndicator();
+      return const CircularProgressIndicator();
     }
 
     return Scaffold(
@@ -36,24 +36,56 @@ class _SettingsPageState extends State<SettingsPage> {
         title: const Text('Settings'),
         centerTitle: true,
       ),
-      body: Center(
-        child: Column(
-          children: [
-            Row(
-              children: [
-                const Text("Sound"),
-                Switch(
-                  value: prefs.getBool("Sound") ?? false,
-                  onChanged: (value) {
-                    setState(() {
-                      prefs.setBool("Sound", value);
-                    });
-                  },
-                ),
-              ],
-            ),
+      body: Container(
+        margin: const EdgeInsets.all(10),
+        child: Center(
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  const Text("Sound"),
+                  Switch(
+                    value: prefs.getBool("SoundEnabled") ?? false,
+                    onChanged: (value) {
+                      setState(() {
+                        prefs.setBool("SoundEnabled", value);
+                      });
+                      prefs.setBool("SoundEnabled", value);
+                      print(prefs.getBool("SoundEnabled"));
+                    },
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  const Text("Vibro"),
+                  Switch(
+                    value: prefs.getBool("VibroEnabled") ?? false,
+                    onChanged: (value) {
+                      setState(() {
+                        prefs.setBool("VibroEnabled", value);
+                      });
+                    },
+                  ),
 
-          ],
+                ],
+              ),
+              Row(
+                children: [
+                  const Text("Light"),
+                  Switch(
+                    value: prefs.getBool("LightEnabled") ?? false,
+                    onChanged: (value) {
+                      setState(() {
+                        prefs.setBool("LightEnabled", value);
+                      });
+                    },
+                  ),
+
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -72,4 +104,4 @@ class _SettingsPageState extends State<SettingsPage> {
   * 9. Зміна розміру шрифтів
   * 10. Параметри пошуку Емайл/мак/посилання/
   * 11. Зміна сортування індентифікатор  min/max max/min
-   */
+*/

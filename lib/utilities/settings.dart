@@ -11,9 +11,11 @@ class Settings{
     prefs.setString('theme', "green");
     prefs.setBool("SoundEnabled", true);
     prefs.setBool("VibroEnabled", true);
+    prefs.setBool("LightEnabled", true);
     prefs.setBool("DupesCheck", false);
     prefs.setInt("FontSize", 12);
     prefs.setBool("AscendingOrder", false);
     prefs.setBool("DarkTheme", true);
+    prefs.setBool("zoom",false);
   }
 }
