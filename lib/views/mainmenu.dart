@@ -17,7 +17,6 @@ import 'package:share/share.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
-import '../utilities/settings.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class QRCodeScannerPage extends StatefulWidget {
@@ -33,7 +32,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   //MIGRATION
   MobileScannerController cameraController = MobileScannerController();
-
   late SharedPreferences prefs;
 
   //AD
@@ -41,8 +39,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   InterstitialAd? _interstitialAd;
   bool _isBannerAdLoaded = false;
 
-
-  final Settings settings = Settings();
   final AudioPlayer audioPlayer = AudioPlayer();
   final DatabaseHelper databaseHelper = DatabaseHelper.instance;
   List<Record> scannedCards = [];
@@ -240,7 +236,8 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   }
 
   void _openQRCodeScanner(BuildContext context) {
-    bool zoomed = settings.prefs.getBool('zoom') as bool;
+    bool zoomed = prefs.getBool('zoom') as bool;
+    print('LightState: ${cameraController.torchEnabled}');
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
@@ -260,7 +257,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                   ),
                   const SizedBox(width: 20),
                   ElevatedButton(
-                    style: settings.prefs.getBool('multiscan') ?? true
+                    style: prefs.getBool('multiscan') ?? true
                         ? ButtonStyle(
                       backgroundColor: MaterialStateProperty.all<Color>(
                           Theme.of(context).primaryColor),
@@ -274,10 +271,31 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                         MaterialStateProperty.all<Color>(
                             Theme.of(context).primaryColor)),
                     onPressed: () {
-                      settings.prefs.setBool('multiscan',
-                          !(settings.prefs.getBool('multiscan') as bool));
+                      prefs.setBool('multiscan',
+                          !(prefs.getBool('multiscan') as bool));
                     },
                     child: const Text('Multiscan'),
+                  ),
+                  const SizedBox(width: 20),
+                  ElevatedButton(
+                    style: cameraController.torchEnabled
+                        ? ButtonStyle(
+                      backgroundColor: MaterialStateProperty.all<Color>(
+                          Theme.of(context).primaryColor),
+                      foregroundColor:
+                      MaterialStateProperty.all<Color>(Colors.white),
+                    )
+                        : ButtonStyle(
+                        backgroundColor:
+                        MaterialStateProperty.all<Color>(Colors.white),
+                        foregroundColor:
+                        MaterialStateProperty.all<Color>(
+                            Theme.of(context).primaryColor)),
+                    onPressed: () {
+                      cameraController.toggleTorch();
+
+                    },
+                    child: const Icon(Icons.flashlight_on),
                   ),
                 ],
               ),
@@ -286,7 +304,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                 child: GestureDetector(
                   onDoubleTap: () {
                     zoomed = !zoomed;
-                    settings.prefs.setBool('zoom', zoomed);
+                    prefs.setBool('zoom', zoomed);
                     if (zoomed) {
                       cameraController.setZoomScale(0.5);
                     }
@@ -313,15 +331,15 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                         comment: '',
                         macAddress: mac,
                         timestamp: DateTime.now(),
-                        quantity: settings.prefs.getInt('quantity') ?? 1,
+                        quantity: prefs.getInt('quantity') ?? 1,
                       );
                       // check if record already exists
                       databaseHelper.exist(record).then((value) async {
                         if (!value) {
                           await databaseHelper.insertRecord(record);
-                          if (settings.prefs.getBool('SoundEnabled') as bool) audioPlayer.play(AssetSource('beep.mp3'));
-                          if (settings.prefs.getBool('VibroEnabled') as bool) HapticFeedback.lightImpact();
-                            if (settings.prefs.getBool('multiscan') == true) {
+                          if (prefs.getBool('SoundEnabled') as bool) audioPlayer.play(AssetSource('beep.mp3'));
+                          if (prefs.getBool('VibroEnabled') as bool) HapticFeedback.lightImpact();
+                            if (prefs.getBool('multiscan') == true) {
                             cameraController.stop();
                             Timer timer = Timer(const Duration(seconds: 1), () {
                               cameraController.start();
@@ -334,7 +352,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                           }
                         }
                         else {
-                          audioPlayer.play(AssetSource('error.wav'));
+                          if (prefs.getBool('SoundEnabled') as bool) audioPlayer.play(AssetSource('error.wav'));
                           cameraController.stop();
                           Timer timer = Timer(const Duration(seconds: 1), () {
                             cameraController.start();
@@ -669,7 +687,7 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   void _showNewDialog(BuildContext context) async {
     final TextEditingController qrDataController = TextEditingController();
     final TextEditingController commentController = TextEditingController();
-
+    print(prefs.getBool('SoundEnabled'));
     showDialog(
       context: context,
       builder: (BuildContext context) {

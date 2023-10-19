@@ -11,13 +11,14 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   late SharedPreferences prefs;
-  final Settings settings = Settings();
 
   @override
   void initState() {
     super.initState();
-    initSharedPreferences();
   }
+   _SettingsPageState() {
+    initSharedPreferences();
+   }
 
   Future<void> initSharedPreferences() async {
     prefs = await SharedPreferences.getInstance();
@@ -45,7 +46,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 children: [
                   const Text("Sound"),
                   Switch(
-                    value: prefs.getBool("SoundEnabled") ?? false,
+                    value: prefs.getBool("SoundEnabled") as bool,
                     onChanged: (value) {
                       setState(() {
                         prefs.setBool("SoundEnabled", value);
@@ -60,7 +61,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 children: [
                   const Text("Vibro"),
                   Switch(
-                    value: prefs.getBool("VibroEnabled") ?? false,
+                    value: prefs.getBool("VibroEnabled") as bool,
                     onChanged: (value) {
                       setState(() {
                         prefs.setBool("VibroEnabled", value);
@@ -74,7 +75,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 children: [
                   const Text("Light"),
                   Switch(
-                    value: prefs.getBool("LightEnabled") ?? false,
+                    value: prefs.getBool("LightEnabled") as bool,
                     onChanged: (value) {
                       setState(() {
                         prefs.setBool("LightEnabled", value);

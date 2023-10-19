@@ -5,10 +5,11 @@ import 'package:mainflutter/utilities/settings.dart';
 import 'package:mainflutter/views/SettingsPage.dart';
 import 'views/mainmenu.dart';
 import 'views/AboutPage.dart';
-
+import 'utilities/settings.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   MobileAds.instance.initialize();
+  Settings settings = Settings();
   runApp(const MyApp());
   Settings();
 }
