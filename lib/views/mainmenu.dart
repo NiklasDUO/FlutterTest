@@ -92,6 +92,35 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
         title: const Text('QR 2 TAB'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.download),
+            color: Colors.white,
+            onPressed: () {
+              FilePicker.platform.pickFiles(dialogTitle: "Pick a file",type: FileType.custom, allowedExtensions: ['xlsx']).then(
+                  (value) {
+                    if (value != null) {
+                      final file = File(value.files.single.path!.toString());
+                      final bytes = file.readAsBytesSync();
+                      final excel = Excel.decodeBytes(bytes);
+                      final sheet = excel['Sheet1'];
+                      List<Record> records = [];
+                      for (int i = 2; i <= sheet.maxRows; i++) {
+                        records.add(Record(
+                          qrData: sheet.cell(CellIndex.indexByString("A$i")).value.toString() ?? 'N/A',
+                          comment: sheet.cell(CellIndex.indexByString("B$i")).value.toString() ?? 'N/A',
+                          timestamp: DateTime.parse(sheet.cell(CellIndex.indexByString("C$i")).value.toString() ?? 'N/A'),
+                          quantity: int.parse(sheet.cell(CellIndex.indexByString("D$i")).value.toString()) ?? 0,
+                          macAddress: sheet.cell(CellIndex.indexByString("E$i")).value.toString() ?? 'N/A',
+                        ));
+                      }
+                      databaseHelper.clearDatabase();
+                      databaseHelper.writeLines(records);
+                      _loadScannedCards();
+                    }
+                  }
+              );
+            }
+          ),
+          IconButton(
             icon: const Icon(Icons.qr_code_outlined),
             color: Colors.white,
             onPressed: () {
