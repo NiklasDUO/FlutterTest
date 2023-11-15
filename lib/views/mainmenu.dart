@@ -17,7 +17,6 @@ import 'package:share/share.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../utilities/notifiedsettings.dart';
 class QRCodeScannerPage extends StatefulWidget {
   const QRCodeScannerPage({Key? key}) : super(key: key);
@@ -35,10 +34,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   late SharedPreferences prefs;
   late NotifiedSettings notifiedSettings;
 
-  //AD
-  late BannerAd _bannerAd;
-  InterstitialAd? _interstitialAd;
-  bool _isBannerAdLoaded = false;
 
   final AudioPlayer audioPlayer = AudioPlayer();
   final DatabaseHelper databaseHelper = DatabaseHelper.instance;
@@ -58,7 +53,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   @override
   void dispose() {
     cameraController.dispose();
-    _bannerAd.dispose();
     super.dispose();
   }
 
@@ -66,7 +60,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   void initState() {
     super.initState();
     _loadScannedCards();
-    loadAd();
   }
 
   Future<void> _loadScannedCards() async {
@@ -212,61 +205,11 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                 },
               ),
             ),
-            if (_bannerAd != null && _isBannerAdLoaded)
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: SafeArea(
-                  child: SizedBox(
-                    width: _bannerAd.size.width.toDouble(),
-                    height: _bannerAd.size.height.toDouble(),
-                    child: AdWidget(ad: _bannerAd),
-                  ),
-                ),
-              ),
           ],
         ),
       ),
     );
   }
-
-  void loadAd() {
-    _bannerAd = BannerAd(
-      adUnitId: adUnitId,
-      request: const AdRequest(),
-      size: AdSize.banner,
-      listener: BannerAdListener(
-        // Called when an ad is successfully received.
-        onAdLoaded: (ad) {
-          debugPrint('$ad loaded.');
-          setState(() {
-            _isBannerAdLoaded = true;
-          });
-        },
-        // Called when an ad request failed.
-        onAdFailedToLoad: (ad, error) {
-          debugPrint('BannerAd failed to load: $error');
-          // Dispose the ad here to free resources.
-          ad.dispose();
-        },
-      ),
-    )..load();
-    InterstitialAd.load(
-        adUnitId: videoUnitId,
-        request: const AdRequest(),
-        adLoadCallback: InterstitialAdLoadCallback(
-          // Called when an ad is successfully received.
-          onAdLoaded: (ad) {
-            debugPrint('$ad loaded.');
-            // Keep a reference to the ad so you can show it later.
-            _interstitialAd = ad;
-          },
-          // Called when an ad request failed.
-          onAdFailedToLoad: (LoadAdError error) {
-            debugPrint('InterstitialAd failed to load: $error');
-          },
-        ));
-  }
-
   void _openQRCodeScanner(BuildContext context) {
     bool zoomed = prefs.getBool('zoom') as bool;
     String multiText = "Multi";
@@ -667,7 +610,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
               actions: [
                 TextButton(
                   onPressed: () {
-                    _interstitialAd?.show();
                     _shareFile(filePath);
                     Navigator.of(context).pop();
                   },
@@ -675,7 +617,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
                 ),
                 TextButton(
                   onPressed: () {
-                    _interstitialAd?.show();
                     _saveFile(filePath);
                     Navigator.of(context).pop();
                   },
